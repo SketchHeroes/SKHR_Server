@@ -1,10 +1,18 @@
 <?php
+require_once("rest_skelaton.php");
 $data = RestUtils::processRequest();
+$x = $data->getMethod();
+echo 'Method is:', $x;
+echo 'HTTP_REQUEST:', $_SERVER['HTTP_REQUEST'];
+echo 'REQUEST_File:', $_SERVER['REQUEST_FILENAME'];
 switch($data->getMethod)
 {
 	// this is a request for all users, not one in particular
 	case 'get':
-		$user_list = getUserList(); // assume this returns an array
+		$user_list = array(
+    "name" => "rrrrronnnennn",
+    "password" => "1234566766666",
+); // assume this returns an array
 
 		if($data->getHttpAccept == 'json')
 		{

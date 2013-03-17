@@ -5,10 +5,11 @@ class RestUtils
 	{
 		// get our verb
 		$request_method = strtolower($_SERVER['REQUEST_METHOD']);
+		echo 'In function processRequest';
 		$return_obj		= new RestRequest();
 		// we'll store our data here
 		$data			= array();
-	
+		echo 'request_method:', $request_method;
 		switch ($request_method)
 		{
 			// gets are easy...
@@ -29,7 +30,8 @@ class RestUtils
 				$data = $put_vars;
 				break;
 		}
-	
+                echo 'Get:', $_GET;
+		echo 'Data:', $data['data']; 	
 		// store the method
 		$return_obj->setMethod($request_method);
 	
@@ -75,7 +77,7 @@ class RestUtils
 				$message = 'You must be authorized to view this page.';
 				break;
 			case 404:
-				$message = 'The requested URL ' . $_SERVER['REQUEST_URI'] . ' was not found.';
+				$message = 'The requested URL ' . $_SERVER['REQUEST_URI'] . ' was not found FUCK OOFFF.';
 				break;
 			case 500:
 				$message = 'The server encountered an error processing your request.';
@@ -135,7 +137,7 @@ class RestUtils
 		    401 => 'Unauthorized',
 		    402 => 'Payment Required',
 		    403 => 'Forbidden',
-		    404 => 'Not Found',
+		    404 => 'Not Found FuckoffGGG',
 		    405 => 'Method Not Allowed',
 		    406 => 'Not Acceptable',
 		    407 => 'Proxy Authentication Required',
