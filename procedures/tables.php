@@ -232,14 +232,6 @@ class UserTable {
 }
 
 class TokenTable {
-	const MYSQL_CREATE_CODE ='CREATE TABLE `tokens` (
-								`token_id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-								`user_id` INT(10) UNSIGNED NOT NULL,
-								`token` BLOB NOT NULL,
-								`expiry` TIMESTAMP NULL DEFAULT NULL,
-								PRIMARY KEY (`token_id`),
-								INDEX `FK__users` (`user_id`)
-							)';
 	
 	final public static function columns() {
 	

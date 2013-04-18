@@ -1,3 +1,77 @@
+SKHR Server, API version 1.0:
+
+POST /api/v1.0/user/register HTTP/1.1
+json: $data = {
+
+
+
+
+
+
+
+}
+return $data = {
+
+
+
+
+
+
+
+}
+POST /api/v1.0/user/login HTTP/1.1
+receive $data = {
+
+
+
+
+
+
+
+}
+return $data = {
+
+
+
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---------------------------- Server Configurations --------------------------------
 Configure the http server document root:
 
 /etc/apache2/sites-available/default

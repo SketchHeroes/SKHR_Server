@@ -20,11 +20,11 @@ class APIExecutor {
 		$data = $rest_request->getRequestVars();
 		
 		switch ($api_ver) {
+			case 'v0.1': $apiVer = 'V01';
+			break;
+			case 'v0.2': $apiVer = 'V02';
+			break;
 			case 'v1.0': $apiVer = 'V10';
-			break;
-			case 'v1.1': $apiVer = 'V11';
-			break;
-			case 'v2.0': $apiVer = 'V20';
 			break;
 			default:
 				throw new SKHR_Exception('Unsupported API: '.$api_ver, 140);
@@ -37,13 +37,19 @@ class APIExecutor {
 	}
 }
 	
-class APIExecutorV10 extends APIExecutor {
+class APIExecutorV01 extends APIExecutor {
 	
 	public static function post_user_register($data) {
 		$ddata = json_decode($data,TRUE);
 		$ur = new UserRegister($ddata);
 		echo 'Registration Result: '.print_r(json_encode($ur->result)). "\n";
 	}
+	
+	public static function post_user_login($data) {
+		
+	}
+	
+	
 }
 
 
