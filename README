@@ -1,0 +1,15 @@
+Configure the http server document root:
+
+/etc/apache2/sites-available/default
+
+	DocumentRoot /home/ronend/skhr/code/SKHR_Server
+	<Directory /home/ronend/skhr/code/SKHR_Server/>
+	    Options Indexes FollowSymLinks MultiViews
+	    AllowOverride ALL
+	    Order allow,deny
+	    allow from all
+	</Directory>
+
+/etc/apache2/apache2.conf
+	
+	AccessFileName .htaccess

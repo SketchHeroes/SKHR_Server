@@ -1,7 +1,7 @@
 <?php
 
 require_once("messages.php");
-require_once("constants.php");
+require_once("mysql_scripts/constants.php");
 require_once("dbapi.php");
 require_once("tables.php");
 

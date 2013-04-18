@@ -5,8 +5,8 @@
 // Client side POST:
 // curl -v -H "Accept: application/json" -H "Content-type: application/json" -X POST -d @b.json http://localhost:80/rest/api/user/123/
 
-require_once("rest_api.php");
-require_once 'api_actions.php';
+require_once("api/rest_api.php");
+require_once 'api/api_actions.php';
 $rest_request = RestUtils::processRequest();
 $api_action_result = new APIExecutor($rest_request);
 
