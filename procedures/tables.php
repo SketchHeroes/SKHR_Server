@@ -279,8 +279,8 @@ class TableDataManager {
 			$pkey = (array_key_exists('presented_name', $columns[$key])) ? $columns[$key]['presented_name'] : $key;
 			if (array_key_exists($pkey, $data)) {
 				// Validate presented value:
-				if (array_key_exists('vaidate', $columns[$key])) {
-					call_user_func($table.'::'.$columns[$key]['validate'],$data[$pkey]);
+				if (array_key_exists('validate', $columns[$key])) {
+// 					call_user_func($table.'::'.$columns[$key]['validate'],$data[$pkey]);
 				}
 				// Convert presented to stored value:
 				if (array_key_exists('rule', $columns[$key])) {

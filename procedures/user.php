@@ -1,6 +1,6 @@
 <?php
 
-require_once("messages.php");
+require_once("exceptions.php");
 require_once("mysql_scripts/constants.php");
 require_once("dbapi.php");
 require_once("tables.php");
@@ -36,7 +36,7 @@ class UserRegister {
 		try {
 			$this->verify_credentials_uniqueness();
 		} catch (SKHR_Exception $e) {
-			echo self::TAG.$e;
+// 			echo self::TAG.$e;
 		}
 		
 		$this->create_new_user();

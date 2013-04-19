@@ -45,12 +45,20 @@ class Messages
 			self::REGISTRATION_SUCCEDED => 'Registration succeded'
 	);
 	
+	public static function exception2Status($code) {
+		;
+	}
 }
 
 class SKHR_Exception extends Exception {
 	public function __construct ($message = null, $code = null, $previous = null) {
 		$this->message = Messages::$Exceptions[$code].':'. "\n" .$message;
 		$this->code = $code;
+	}
+	
+	public static function exception2Status ($code) {
+		$a = parse_ini_file('api/exceptions2Status.ini');
+		return $a[$code];
 	}
 }
 

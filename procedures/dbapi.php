@@ -50,7 +50,7 @@ class DBAPI
 		$db = DB::get_dblink();
 		//Check table existance and more than 0 rows
 		//Check columnes existance
-		echo self::TAG.'pass'."\n";
+// 		echo self::TAG.'pass'."\n";
 	
 	}
 	
@@ -59,7 +59,7 @@ class DBAPI
 	{
 		$db = DB::get_dblink();
 		//Check columnes existance
-		echo self::TAG.'pass'."\n";
+// 		echo self::TAG.'pass'."\n";
 	
 	}
 	
@@ -70,7 +70,7 @@ class DBAPI
 		$db = DB::get_dblink();
 		//Check table existance and more than 0 rows
 		//Check columnes existance
-		echo self::TAG.'pass'."\n";
+// 		echo self::TAG.'pass'."\n";
 	
 	}
 	
@@ -127,7 +127,7 @@ class DBAPI
 		if ($sql_stmt->errno) {
 			throw new SKHR_Exception(self::TAG.$sql_stmt->error ,Messages::PREPARE_QUARY_FAILED);
 		} else {
-			echo self::TAG."Updated {$sql_stmt->affected_rows} rows"."\n". '*** id: '.$sql_stmt->insert_id. "\n";
+// 			echo self::TAG."Updated {$sql_stmt->affected_rows} rows"."\n". '*** id: '.$sql_stmt->insert_id. "\n";
 		}
 		$inserted_id = $sql_stmt->insert_id;
 		$sql_stmt->close();

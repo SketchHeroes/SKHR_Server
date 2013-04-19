@@ -1,6 +1,6 @@
 SKHR Server, API version 1.0:
 
-POST /api/v1.0/user/register HTTP/1.1
+POST /api/v1/user/register HTTP/1.1
 json: $data = {
 
 
@@ -19,7 +19,7 @@ return $data = {
 
 
 }
-POST /api/v1.0/user/login HTTP/1.1
+POST /api/v1/user/login HTTP/1.1
 receive $data = {
 
 
@@ -38,36 +38,6 @@ return $data = {
 
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
