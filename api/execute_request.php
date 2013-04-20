@@ -65,7 +65,7 @@ class APIExecutorV1 extends APIExecutor {
 	public static function post_user_login($data) {
 		$ddata = json_decode($data, TRUE);
 		try {
-			$ur = new UserRegister($ddata);
+			$ur = new UserLogin($ddata);
 			$body = json_encode($ur->result);
 			$status = 200;
 			$content_type = 'application/json';
