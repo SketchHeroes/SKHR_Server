@@ -14,9 +14,9 @@ class Messages
 	
 	// Field Validation messages
 	const INVALID_FIELD_VALUE = 120;
-	
+	const MANDATORY_FIELD_MISSING = 121;
 	// Token
-	const TOKEN_INSERTION_FAILED = 121;
+	const TOKEN_INSERTION_FAILED = 122;
 	
 	// MYSQLi failures
 	const FAILED_TO_CONNECT_DB = 130;

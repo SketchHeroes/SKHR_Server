@@ -63,7 +63,20 @@ class APIExecutorV1 extends APIExecutor {
 	}
 	
 	public static function post_user_login($data) {
+		$ddata = json_decode($data, TRUE);
+		try {
+			$ur = new UserRegister($ddata);
+			$body = json_encode($ur->result);
+			$status = 200;
+			$content_type = 'application/json';
+		} catch (Exception $e) {
+			$status = SKHR_Exception::exception2Status($e->getCode());
+			$body = $e->getMessage();
+			$content_type = 'text/html';
+			echo 'Exception Catched: '.$e;
+		}
 		
+		return array('status_code' => $status, 'body' => $body, 'content_type' => $content_type);
 	}
 	
 	

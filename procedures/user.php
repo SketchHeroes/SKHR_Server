@@ -87,6 +87,60 @@ class UserRegister {
 	
 }
 
+class UserLogin {
+
+	const TAG = 'user.php, UserLogin:';
+	public $result = array('code' => 0, 'data' => array());
+	private $data_to_store = array();
+	const MANDATORY_FIELDS = 'type password email';
+	const MANDATORY_FIELDS_FACEBOOK = 'type fb_id token';
+	function __construct(array $data) {
+		// 		parent::__construct();
+		$this->data_to_store = User::accept_data($data, User::TABLE_CLASS);
+		// 		echo '------------ REGISTER --------------'."\n";
+		// 		echo "\n".print_r($this->data_to_store). "\n";
+		// 		echo '------------ ******** --------------'."\n";
+		$this->login();
+	}
+
+	private function login() {
+		$this->verify_mandatory_fields();
+		$this->data_to_store[];
+		
+		$this->result['data'] = $this->data_to_store;
+		$tk = UserToken::new_token_for_user($this->data_to_store['user_id'], $this->data_to_store);
+		// 		echo 'token: '.$tk. "\n";
+		$this->result['data']['token'] = $tk;
+	}
+
+	private function verify_mandatory_fields() {
+		if (!array_key_exists('type', $this->data_to_store)) {
+			throw new SKHR_Exception(self::TAG.' type is mandatory for login action ', Messages::MANDATORY_FIELD_MISSING);
+		}
+		$mandatory_fields = (!$this->data_to_store['type']) ? self::MANDATORY_FIELDS : self::MANDATORY_FIELDS_FACEBOOK;
+		$fields_to_verify = preg_split('/[\s]+/', $mandatory_fields);
+		foreach ($fields_to_verify as $field_name) {
+			if (!array_key_exists($field_name, $this->data_to_store)) {
+				throw new SKHR_Exception(self::TAG.' '.$field_name.' is mandatory for login action ', Messages::MANDATORY_FIELD_MISSING);
+			}
+		}
+		
+	}
+
+	private function create_new_user() {
+
+		// Insert the data
+		$this->data_to_store['created_time'] = date(DATE_ATOM,time());
+		$res = DBAPI::add_row_with_values(User::TABLE, $this->data_to_store);
+		$this->data_to_store['user_id'] = $res;
+		if ($this->data_to_store['user_id']==0) {
+			$this->result['code'] = Messages::REGISTRATION_FAILED;
+		}
+		$this->result['code'] = Messages::REGISTRATION_SUCCEDED;
+	}
+
+}
+
 class UserToken {
 	const TAG = 'user.php, UserToken:';
 	
