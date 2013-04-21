@@ -12,12 +12,14 @@ class Messages
 	const CREDENTIALS_EMAIL_IS_MANDATORY = 107;
 	const CREDENTIALS_FB_ID_IS_MANDATORY = 108;
 	
+	const LOGIN_SUCCEDED = 110;
+	const LOGIN_FAILED = 111;
 	// Field Validation messages
 	const INVALID_FIELD_VALUE = 120;
-	
+	const MANDATORY_FIELD_MISSING = 121;
 	// Token
-	const TOKEN_INSERTION_FAILED = 121;
-	
+	const TOKEN_INSERTION_FAILED = 122;
+	const TOKEN_UPDATE_FAILED = 123;
 	// MYSQLi failures
 	const FAILED_TO_CONNECT_DB = 130;
 	const PREPARE_QUARY_FAILED = 131;
@@ -38,7 +40,8 @@ class Messages
 			self::TOKEN_INSERTION_FAILED => 'Failed to insert token to the db',
 		// MYSQLi failures
 			self::FAILED_TO_CONNECT_DB => 'Failed to connect to mysql db',
-			self::PREPARE_QUARY_FAILED => 'Failed to prepare quary'
+			self::PREPARE_QUARY_FAILED => 'Failed to prepare quary',
+			self::TOKEN_UPDATE_FAILED => 'Failed to update token'
 	);
 	
 	public static $Success = array(
