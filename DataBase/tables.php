@@ -9,8 +9,15 @@ class UserTable {
 	final public static function columns() {
 		return(parse_ini_file('./DataBase/tables/user.ini',true));
 	}
-	
+
 	// ---------------- RULES:
+	# to_stored = 
+	# true: convert from accepted to stored value
+	# false: convert from stored to accept value
+	final public static function convertion_rule($value, $to_stored) {
+		
+	}
+	
 	final public static function type_rule($getp) {
 		if (gettype($getp) == gettype('string')) {
 			$rtype = ($getp == 'facebook') ? 1 : 0;
@@ -39,123 +46,80 @@ class UserTable {
 	}
 	
 	// ---------------- VALIDATORS:
-	final public static function email_validate($email) {
+	final public static function validate_column_value(array $col_descriptor, $value) {
+		if (array_key_exists('validate', $col_descriptor)) {
+			$validate_info = $col_descriptor['validate'];  
+		} else {
+			return true;
+		}
+		if (array_key_exists('method', $validate_info)) {
+			$method = $validate_info['method'];
+		} else {
+			throw new SKHR_Exception(self::TAG. 'missing method key in validate array', Messages::INVALID_FIELD_VALUE);
+		}
+		unset($validate_info['method']);
+		$restrictions = $validate_info;
+		return call_user_func($method, $value, $restrictions);
+	}
+	
+	final private function validate_email($email, $restrictions) {
 		if (filter_var($email,FILTER_VALIDATE_EMAIL) == FALSE) {
 			throw new SKHR_Exception(self::TAG.'Field: email. ', Messages::INVALID_FIELD_VALUE);
 		} 
 	}
 	
-	final public static function user_id_validate($user_id) {
+	final private function validate_int($value, $restrictions) {
+		
 		$options = array(
 				'options' => array(
-						'min_range' => self::USER_ID_OFFSET,
-						'max_range' => self::USER_ID_OFFSET * 2
+						'min_range' => $restrictions['min'],
+						'max_range' => $restrictions['max']
 				)
 		);
 		if (filter_var($user_id, FILTER_VALIDATE_INT, $options) == FALSE) {
-			throw new SKHR_Exception(self::TAG.'Field: user_id. ', Messages::INVALID_FIELD_VALUE);
+			throw new SKHR_Exception(self::TAG, Messages::INVALID_FIELD_VALUE);
 		}
 	}
 	
-	final public static function fb_link_validate($link) {
+	final public static function validate_link($link, $restrictions) {
 		if (filter_var($link,FILTER_VALIDATE_URL) == FALSE) {
-			throw new SKHR_Exception(self::TAG.'Field: fb_link. ', Messages::INVALID_FIELD_VALUE);
+			throw new SKHR_Exception(self::TAG, Messages::INVALID_FIELD_VALUE);
+		} 
+		if (array_key_exists('max_length', $restrictions)) {
+			if (strlen($link) > $restrictions['max_length']) {
+				throw new SKHR_Exception(self::TAG.' value exceeds max length', Messages::INVALID_FIELD_VALUE);
+			}
+		} 
+		if (array_key_exists('contain', $restrictions)) {
+			if (!strpos($value, $restrictions['contain'])) {
+				throw new SKHR_Exception(self::TAG.'  '.$restrictions['contain'].' not appears', Messages::INVALID_FIELD_VALUE);
+			}
 		}
 	}
 	
-	final public static function username_validate($field_str) {
-		$sanitize = filter_var($field_str,FILTER_SANITIZE_STRING);
-		if (strlen($sanitize) !== $field_str || empty($field_str) || strlen($field_str) > self::STANDARD_STRING_LEN) {
-			throw new SKHR_Exception(self::TAG.'Field: username. ', Messages::INVALID_FIELD_VALUE);
+	final public static function validate_string($value, $restrictions) {
+		if (array_key_exists('max_length', $restrictions)) {
+			if (strlen($value) > $restrictions['max_length']) {
+				throw new SKHR_Exception(self::TAG.' value exceeds max length', Messages::INVALID_FIELD_VALUE);
+			}
+		}
+		if (array_key_exists('min_length', $restrictions)) {
+			if (strlen($value) > $restrictions['min_length']) {
+				throw new SKHR_Exception(self::TAG.' value is shorter than min length', Messages::INVALID_FIELD_VALUE);
+			}
+		}
+		if (array_key_exists('contain', $restrictions)) {
+			if (!strpos($value, $restrictions['contain'])) {
+				throw new SKHR_Exception(self::TAG.'  '.$restrictions['contain'].' not appears', Messages::INVALID_FIELD_VALUE);
+			}
+		}
+		if (array_key_exists('options', $restrictions)) {
+			$options = preg_split('/[\s]+/', $restrictions['options']);
+			if (!in_array($value, $options)) {
+				throw new SKHR_Exception(self::TAG.' value must be one of: '.$restrictions['options'], Messages::INVALID_FIELD_VALUE);
+			}
 		}
 	}
-	
-	final public static function name_validate($field_str) {
-		$sanitize = filter_var($field_str,FILTER_SANITIZE_STRING);
-		if (strlen($sanitize) !== $field_str || empty($field_str) || strlen($field_str) > self::STANDARD_STRING_LEN) {
-			throw new SKHR_Exception(self::TAG.'Field: name. ', Messages::INVALID_FIELD_VALUE);
-		}
-	}
-	
-	final public static function first_name_validate($field_str) {
-		$sanitize = filter_var($field_str,FILTER_SANITIZE_STRING);
-		if (strlen($sanitize) !== $field_str || empty($field_str) || strlen($field_str) > self::STANDARD_STRING_LEN) {
-			throw new SKHR_Exception(self::TAG.'Field: first_name. ', Messages::INVALID_FIELD_VALUE);
-		}
-	}
-	
-	final public static function last_name_validate($field_str) {
-		$sanitize = filter_var($field_str,FILTER_SANITIZE_STRING);
-		if (strlen($sanitize) !== $field_str || strlen($field_str) > self::STANDARD_STRING_LEN) {
-			throw new SKHR_Exception(self::TAG.'Field: last_name. ', Messages::INVALID_FIELD_VALUE);
-		}
-	}
-	
-	final public static function type_validate($field_str) {
-		$types = preg_split('/[\s]+/', self::USER_TYPES_LIST);
-		if (!in_array($field_str, $types)) {
-			throw new SKHR_Exception(self::TAG.'Field: type. ', Messages::INVALID_FIELD_VALUE);
-		}
-	}
-	
-	final public static function fb_id_validate($fb_id) {
-		//$options = array('options' => array('min_range' => 12000000,'max_range' => self::USER_ID_OFFSET * 2));
-		if (filter_var($fb_id, FILTER_VALIDATE_INT) == FALSE) {
-			throw new SKHR_Exception(self::TAG.'Field: fb_id. ', Messages::INVALID_FIELD_VALUE);
-		}
-	}
-	
-	final public static function birthday_validate($field_str) {
-		$sanitize = filter_var($field_str,FILTER_SANITIZE_STRING);
-		if (strlen($field_str) > self::STANDARD_STRING_LEN) {
-			throw new SKHR_Exception(self::TAG.'Field: birthday. ', Messages::INVALID_FIELD_VALUE);
-		}
-	}
-	final public static function gender_validate($field_str) {
-		$sanitize = filter_var($field_str,FILTER_SANITIZE_STRING);
-		if (strlen($sanitize) !== $field_str || empty($field_str) || strlen($field_str) > 10) {
-			throw new SKHR_Exception(self::TAG.'Field: gender. ', Messages::INVALID_FIELD_VALUE);
-		}
-	}
-	
-	final public static function password_validate($password) {
-		$options = array('options' => array('min_range' => 6,'max_range' => 12));
-		if (filter_var(strlen($password), FILTER_VALIDATE_INT, $options) == FALSE) {
-			throw new SKHR_Exception(self::TAG.'Field: password length limits 6-12. ', Messages::INVALID_FIELD_VALUE);
-		}
-	}
-	
-	final public static function locale_validate($field_str) {
-		$sanitize = filter_var($field_str,FILTER_SANITIZE_STRING);
-		if (strlen($sanitize) !== $field_str || strlen($field_str) > 10) {
-			throw new SKHR_Exception(self::TAG.'Field: locale. ', Messages::INVALID_FIELD_VALUE);
-		}
-	}
-	
-	final public static function verified_validate($verified) {
-// 		$options = array('options' => array('min_range' => 0,'max_range' => 1));
-		if (filter_var($verified, FILTER_VALIDATE_BOOLEAN) == FALSE) {
-				throw new SKHR_Exception(self::TAG.'Field: verified should be boolean. ', Messages::INVALID_FIELD_VALUE);
-		}
-	}
-	
-	final public static function timezone_validate($link) {
-	$options = array('options' => array('min_range' => 0,'max_range' => 24));
-		if (filter_var($verified, FILTER_VALIDATE_INT, $options) == FALSE) {
-				throw new SKHR_Exception(self::TAG.'Field: timezone. ', Messages::INVALID_FIELD_VALUE);
-		}
-	}
-	
-	final public static function updated_time_validate($time) {
-// 		$t = gettype(date(DATE_ATOM,time()));
-		return;
-	}
-	
-	final public static function created_time_validate($time) {
-// 		$t = gettype(date(DATE_ATOM,time()));
-		return;
-	}
-	
 }
 
 class TokenTable {
