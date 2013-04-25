@@ -1,32 +1,16 @@
 <?php
-class TokenTable {
-
-	final public static function columns() {
-
-		$columns = array(
-				'token_id' => array(
-						'validate' => 'token_id_validate'
-				),
-				'user_id' => array(
-						'presented_name' => 'skhr_id',
-						'validate' => 'user_id_validate'
-				),
-				'token' => array(
-						'validate' => 'token_validate'
-				),
-				'expiry' => array(
-						'validate' => 'expiry_validate'
-				)
-		);
-		return $columns;
-	}
+class TableName {
+	const USER = 'users';
+	const TOKEN = 'tokens';
+	const TUTORIAL = 'tutorials';
 }
-
 class TableDataManager {
 
 	const TAG = 'tables.php, TableDataManager:';
-
-	public static function render_client_data(array $server_data, $table_ini_file) {
+	const USER_TABLE_INI_FILE = 'user.ini';
+	
+	final public static function render_client_data(array $server_data, $table_ini_file) 
+	{
 		$client_data = array();
 		$columns =  parse_ini_file('./DataBase/tables/'.$table_ini_file,true);
 		foreach ($server_data as $key => $val) {
@@ -40,7 +24,8 @@ class TableDataManager {
 		return $client_data;
 	}
 
-	public static function render_server_data(array $client_data, $table_ini_file) {
+	final public static function render_server_data(array $client_data, $table_ini_file) 
+	{
 		$server_data = array();
 		$columns =  parse_ini_file('./DataBase/tables/'.$table_ini_file,true);
 		foreach ($columns as $key => $val) {
@@ -48,11 +33,11 @@ class TableDataManager {
 			if (array_key_exists($pkey, $client_data)) {
 				// Validate presented value:
 				if (array_key_exists('validate', $columns[$key])) {
-					call_user_func(self::validate_column_value($columns[$key], $val));
+					call_user_func(self::validate_column_value($columns[$key], $client_data[$pkey]));
 				}
 				// Convert presented to stored value:
 				if (array_key_exists('rule', $columns[$key])) {
-					$server_data[$key] = call_user_func(self::convertion_rule($columns[$key], $val, true));
+					$server_data[$key] = call_user_func(self::convertion_rule($columns[$key], $client_data[$pkey], false));
 				} else {
 					$server_data[$key] = $client_data[$pkey];
 				}
@@ -63,10 +48,10 @@ class TableDataManager {
 	
 	// ---------------- RULES:
 	# human =
-	# false: convert from accepted to stored value
-	# true: convert from stored to accept value
+	# false: convert from client to stored value
+	# true: convert from stored to client value
 	# at the ini file, the rule keys are either 'method' or discret human values.
-	final public static function convertion_rule(array $col_descriptor, $value, $human) {
+	final private function convertion_rule(array $col_descriptor, $value, $human) {
 		if (array_key_exists('rule', $col_descriptor)) {
 			$rule_info = $col_descriptor['rule'];
 		} else {
@@ -92,7 +77,7 @@ class TableDataManager {
 	}
 		
 	// ---------------- VALIDATORS:
-	final public static function validate_column_value(array $col_descriptor, $value) {
+	final private function validate_column_value(array $col_descriptor, $value) {
 		if (array_key_exists('validate', $col_descriptor)) {
 			$validate_info = $col_descriptor['validate'];
 		} else {
