@@ -1,5 +1,19 @@
 <?php
 
+// class UserTable {
+// 	const TAG = 'tables.php, UserTable:';
+// 	const TABLE_NAME = 'users';
+// 	const USER_ID_OFFSET = 320000200020001;
+// 	const STANDARD_STRING_LEN = 50;
+// 	const USER_TYPES_LIST = 'skhr facebook';
+
+// 	final public static function columns() {
+// 		return();
+// 	}
+
+
+// }
+
 require_once("exceptions.php");
 require_once("mysql_scripts/constants.php");
 require_once("dbapi.php");
