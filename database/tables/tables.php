@@ -1,13 +1,22 @@
 <?php
-class TableName {
+class Table 
+{
 	const USER = 'users';
+	const USER_TABLE_INI_FILE = 'user.ini';
+	
 	const TOKEN = 'tokens';
+	const TOKEN_TABLE_INI_FILE = 'token.ini';
+	
 	const TUTORIAL = 'tutorials';
+	const COMMENT = 'comments';
+	const FOLOWER = 'followers';
+	const IMAGE = 'images';
 }
-class TableDataManager {
+
+class TableDataManager 
+{
 
 	const TAG = 'tables.php, TableDataManager:';
-	const USER_TABLE_INI_FILE = 'user.ini';
 	
 	final public static function render_client_data(array $server_data, $table_ini_file) 
 	{
@@ -55,7 +64,7 @@ class TableDataManager {
 		if (array_key_exists('rule', $col_descriptor)) {
 			$rule_info = $col_descriptor['rule'];
 		} else {
-			return true;
+			return $value;
 		}
 		if (array_key_exists('method', $rule_info)) {
 			$method = $rule_info['method'];

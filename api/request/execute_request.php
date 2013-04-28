@@ -1,5 +1,6 @@
 <?php
-require_once("rest.php");
+require_once("api/response/rest.php");
+require_once("api/request/rest.php");
 require_once("procedures/user.php");
 
 

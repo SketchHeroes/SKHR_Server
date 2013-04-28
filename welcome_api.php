@@ -8,9 +8,13 @@
 echo "\n" . print_r(parse_ini_file('./DataBase/tables/user.ini',true)) . "\n";
 require_once("api/rest.php");
 require_once 'api/execute_request.php';
-$rest_request = RestUtils::processRequest();
-$execute_result = new APIExecutor($rest_request);
 
+try {
+	$rest_request = RestUtils::processRequest();
+	$execute_result = new APIExecutor($rest_request);
+} catch (Exception $e) {
+// 	send response with right status, status message and exception code and message
+}
 
 ?>
 
