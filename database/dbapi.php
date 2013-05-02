@@ -1,5 +1,5 @@
 <?php
-require_once("mysql_scripts/constants.php");
+require_once("constants.php");
 
 class DBAPI 
 {

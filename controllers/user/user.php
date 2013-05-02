@@ -1,8 +1,8 @@
 <?php
 require_once("exceptions.php");
-require_once("DataBase/constants.php");
-require_once("DataBase/dbapi.php");
-require_once("DataBase/tables/tables.php");
+require_once("database/constants.php");
+require_once("database/dbapi.php");
+require_once("database/tables/tables.php");
 
 class RequestData {
 	
@@ -28,7 +28,7 @@ class UserRegister {
 	private $data_to_store = array();
 	
 	function __construct(array $data) {
-		$this->data_to_store = TableDataManager::render_server_data($data, TableDataManager::USER_TABLE_INI_FILE);
+		$this->data_to_store = TableDataManager::render_server_data($data, Table::USER_TABLE_INI_FILE);
 		$this->register();
 	}
 	
@@ -55,7 +55,7 @@ class UserRegister {
 				if (!array_key_exists('email', $this->data_to_store)) {
 					throw new SKHR_Exception(self::TAG, Messages::CREDENTIALS_EMAIL_IS_MANDATORY);
 				}
-				$quary_res = DBAPI::get_row_value(TableName::USER,array('email'=>$this->data_to_store['email']), 'user_id');
+				$quary_res = DBAPI::get_row_value(Table::USER,array('email'=>$this->data_to_store['email']), 'user_id');
 				if ( $quary_res!= array()) {
 					throw new SKHR_Exception(self::TAG, Messages::CREDENTIALS_ALREADY_IN_USE);
 				}
@@ -64,7 +64,7 @@ class UserRegister {
 				if (!array_key_exists('fb_id', $this->data_to_store)) {
 					throw new SKHR_Exception(self::TAG, Messages::CREDENTIALS_FB_ID_IS_MANDATORY);
 				}
-				if (DBAPI::get_row_value(TableName::USER, array('fb_id'=>$this->data_to_store['fb_id']), 'user_id') != array()) {
+				if (DBAPI::get_row_value(Table::USER, array('fb_id'=>$this->data_to_store['fb_id']), 'user_id') != array()) {
 					throw new SKHR_Exception(self::TAG, Messages::CREDENTIALS_ALREADY_IN_USE);
 				}
 			default:
@@ -77,7 +77,7 @@ class UserRegister {
 		
 		// Insert the data
 		$this->data_to_store['created_time'] = date(DATE_ATOM,time());
-		$res = DBAPI::add_row_with_values(TableName::USER, $this->data_to_store);
+		$res = DBAPI::add_row_with_values(Table::USER, $this->data_to_store);
 		$this->data_to_store['user_id'] = $res;
 		if ($this->data_to_store['user_id']==0) {
 			$this->result['code'] = Messages::REGISTRATION_FAILED;
@@ -124,7 +124,7 @@ class UserLogin {
 					'fb_id' => $this->data_to_store['fb_id']
 			);
 		}
-		$qres = DBAPI::get_row_value(TableName::USER,$by_col_values, 'user_id');
+		$qres = DBAPI::get_row_value(Table::USER,$by_col_values, 'user_id');
 		if ($qres == array()) {
 			throw new SKHR_Exception(self::TAG.' User is not registered.', Messages::LOGIN_FAILED);
 		} elseif (count($qres) > 1) {
@@ -147,8 +147,8 @@ class UserToken {
 	const TAG = 'user.php, UserToken:';
 	
 	public static function new_token_for_user($user_id, $user_info = '') {
-		list($token, $expiry) = self::generate_new_token($user_id, $user_info);		
-		self::insert_token($user_id, $token, expiry);
+		list($token, $expiry) = self::generate_new_token($user_id, $user_info);
+		self::insert_token($user_id, $token, $expiry);
 		return $token;
 	}
 	
@@ -172,15 +172,15 @@ class UserToken {
 	
 	private function insert_token($user_id, $token, $expiry) {
 		$token_data_store = array('token' => $token, 'expiry' => $expiry,'user_id' => $user_id);
-		$db_token_id = DBAPI::add_row_with_values(TableName::TOKEN, $token_data_store);
-		if ($db_token_id) {
+		$db_token_id = DBAPI::add_row_with_values(Table::TOKEN, $token_data_store);
+		if (!$db_token_id) {
 			throw new SKHR_Exception(self::TAG.'Failed to insert new user token',Messages::TOKEN_INSERTION_FAILED);	
 		}
 	}
 	
 	private function update_token($user_id, $token, $expiry) {
 		$token_data_store = array('token' => $token, 'expiry' => $expiry);
-		$db_token_id = DBAPI::update_row_with_values(TableName::TOKEN, $token_data_store, $user_id);
+		$db_token_id = DBAPI::update_row_with_values(Table::TOKEN, $token_data_store, $user_id);
 		if ($db_token_id) {
 			throw new SKHR_Exception(self::TAG.'Failed to update user\'s token',Messages::TOKEN_UPDATE_FAILED);	
 		}
@@ -188,7 +188,7 @@ class UserToken {
 		
 	
 	public static function is_token_valid($token) {
-		$qres = DBAPI::get_row_value(TableName::TOKEN, array('token' => $token), 'expiry');
+		$qres = DBAPI::get_row_value(Table::TOKEN, array('token' => $token), 'expiry');
 		$current = date(DATE_ATOM,time());
 		return ($qres[0] > $current) ? true : false;
 	}

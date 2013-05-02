@@ -21,7 +21,7 @@ class TableDataManager
 	final public static function render_client_data(array $server_data, $table_ini_file) 
 	{
 		$client_data = array();
-		$columns =  parse_ini_file('./DataBase/tables/'.$table_ini_file,true);
+		$columns =  parse_ini_file($table_ini_file,true);
 		foreach ($server_data as $key => $val) {
 			$pkey = (array_key_exists('presented_name', $columns[$key])) ? $columns[$key]['presented_name'] : $key;
 			if (array_key_exists('rule', $columns[$key])) {
@@ -36,29 +36,30 @@ class TableDataManager
 	final public static function render_server_data(array $client_data, $table_ini_file) 
 	{
 		$server_data = array();
-		$columns =  parse_ini_file('./DataBase/tables/'.$table_ini_file,true);
+		$columns =  parse_ini_file($table_ini_file,true);
 		foreach ($columns as $key => $val) {
 			$pkey = (array_key_exists('presented_name', $columns[$key])) ? $columns[$key]['presented_name'] : $key;
 			if (array_key_exists($pkey, $client_data)) {
 				// Validate presented value:
 				if (array_key_exists('validate', $columns[$key])) {
-					call_user_func(self::validate_column_value($columns[$key], $client_data[$pkey]));
+// 					echo "value: ".$key."\n";
+					call_user_func('self::validate_column_value', $columns[$key], $client_data[$pkey]);
 				}
 				// Convert presented to stored value:
 				if (array_key_exists('rule', $columns[$key])) {
-					$server_data[$key] = call_user_func(self::convertion_rule($columns[$key], $client_data[$pkey], false));
+					$server_data[$key] = call_user_func('self::convertion_rule', $columns[$key], $client_data[$pkey], false);
 				} else {
 					$server_data[$key] = $client_data[$pkey];
 				}
 			}
 		}
-		return $arr_db_mode;
+		return $server_data;
 	}
 	
 	// ---------------- RULES:
 	# human =
-	# false: convert from client to stored value
-	# true: convert from stored to client value
+	# true: convert from client to stored value
+	# false: convert from stored to client value
 	# at the ini file, the rule keys are either 'method' or discret human values.
 	final private function convertion_rule(array $col_descriptor, $value, $human) {
 		if (array_key_exists('rule', $col_descriptor)) {
@@ -70,7 +71,8 @@ class TableDataManager
 			$method = $rule_info['method'];
 			return call_user_func($method, $value, $human);
 		}
-		if ($human) {
+		
+		if (!$human) {
 			if (array_key_exists($value, $rule_info)) {
 				return $rule_info[$value];
 			} else {
@@ -99,7 +101,7 @@ class TableDataManager
 		}
 		unset($validate_info['method']);
 		$restrictions = $validate_info;
-		return call_user_func($method, $value, $restrictions);
+		return call_user_func('self::'.$method, $value, $restrictions);
 	}
 	
 	final private function validate_email($email, $restrictions) {
@@ -116,14 +118,15 @@ class TableDataManager
 						'max_range' => $restrictions['max']
 				)
 		);
-		if (filter_var($user_id, FILTER_VALIDATE_INT, $options) == FALSE) {
-			throw new SKHR_Exception(self::TAG, Messages::INVALID_FIELD_VALUE);
+		
+		if (filter_var($value, FILTER_VALIDATE_INT, $options) === false) {
+			throw new SKHR_Exception(self::TAG.'  value: '.$value, Messages::INVALID_FIELD_VALUE);
 		}
 	}
 	
 	final private function validate_link($link, $restrictions) {
 		if (filter_var($link,FILTER_VALIDATE_URL) == FALSE) {
-			throw new SKHR_Exception(self::TAG, Messages::INVALID_FIELD_VALUE);
+			throw new SKHR_Exception(self::TAG.'   LINK: '.$link, Messages::INVALID_FIELD_VALUE);
 		}
 		if (array_key_exists('max_length', $restrictions)) {
 			if (strlen($link) > $restrictions['max_length']) {
@@ -137,15 +140,16 @@ class TableDataManager
 		}
 	}
 	
-	final private function validate_string($value, $restrictions) {
+	final private function validate_string($value, $restrictions) 
+	{
 		if (array_key_exists('max_length', $restrictions)) {
 			if (strlen($value) > $restrictions['max_length']) {
-				throw new SKHR_Exception(self::TAG.' value exceeds max length', Messages::INVALID_FIELD_VALUE);
+				throw new SKHR_Exception(self::TAG.' value exceeds max length. Value: '.$value, Messages::INVALID_FIELD_VALUE);
 			}
 		}
 		if (array_key_exists('min_length', $restrictions)) {
-			if (strlen($value) > $restrictions['min_length']) {
-				throw new SKHR_Exception(self::TAG.' value is shorter than min length', Messages::INVALID_FIELD_VALUE);
+			if (strlen($value) < $restrictions['min_length']) {
+				throw new SKHR_Exception(self::TAG.' value is shorter than min length. Value: '.$value, Messages::INVALID_FIELD_VALUE);
 			}
 		}
 		if (array_key_exists('contain', $restrictions)) {

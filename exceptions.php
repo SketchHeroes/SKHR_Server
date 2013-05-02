@@ -24,6 +24,8 @@ class Messages
 	const FAILED_TO_CONNECT_DB = 130;
 	const PREPARE_QUARY_FAILED = 131;
 	
+	const UNSUPPORTED_API_VERSION = 140;
+	
 	public static $Exceptions = array(
 		// User Registration:
 			self::UNKNOWN_ACCOUNT_TYPE => 'Unknown registration type. Should be 0 for skhr or 1 for facebook',
@@ -47,20 +49,17 @@ class Messages
 	public static $Success = array(
 			self::REGISTRATION_SUCCEDED => 'Registration succeded'
 	);
-	
-	public static function exception2Status($code) {
-		;
-	}
 }
 
 class SKHR_Exception extends Exception {
+	
 	public function __construct ($message = null, $code = null, $previous = null) {
 		$this->message = Messages::$Exceptions[$code].':'. "\n" .$message;
 		$this->code = $code;
 	}
 	
 	public static function exception2Status ($code) {
-		$a = parse_ini_file('api/exceptions2Status.ini');
+		$a = parse_ini_file('exceptions2Status.ini');
 		return $a[$code];
 	}
 }

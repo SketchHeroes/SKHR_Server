@@ -6,6 +6,7 @@ class AcceptRequest
 {
 	const TAG = 'AcceptRequest:';
 	const APIV = 'v1';
+	
 	public static function processRequest()
 	{
 		// get our verb

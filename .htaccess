@@ -3,11 +3,11 @@
 
 	RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-s
-	RewriteRule ^(.*)$ welcome_api.php?rquest=$1 [QSA,NC,L]
+	RewriteRule ^(.*)$ ServerGate.php?rquest=$1 [QSA,NC,L]
 
 	RewriteCond %{REQUEST_FILENAME} -d
-	RewriteRule ^(.*)$ welcome_api.php [QSA,NC,L]
+	RewriteRule ^(.*)$ ServerGate.php [QSA,NC,L]
 
 	RewriteCond %{REQUEST_FILENAME} -s
-	RewriteRule ^(.*)$ welcome_api.php [QSA,NC,L]	
+	RewriteRule ^(.*)$ ServerGate.php [QSA,NC,L]	
 </IfModule>
