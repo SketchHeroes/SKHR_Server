@@ -26,7 +26,7 @@ class Messages
 	
 	const UNSUPPORTED_API_VERSION = 140;
 	
-	public static $Exceptions = array(
+	public static $exceptions = array(
 		// User Registration:
 			self::UNKNOWN_ACCOUNT_TYPE => 'Unknown registration type. Should be 0 for skhr or 1 for facebook',
 			self::CREDENTIALS_ALREADY_IN_USE => 'The supplied credentials are already used by an exist user',
@@ -54,7 +54,7 @@ class Messages
 class SKHR_Exception extends Exception {
 	
 	public function __construct ($message = null, $code = null, $previous = null) {
-		$this->message = Messages::$Exceptions[$code].':'. "\n" .$message;
+		$this->message = Messages::$exceptions[$code].':'. "\n" .$message;
 		$this->code = $code;
 	}
 	

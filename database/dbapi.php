@@ -10,26 +10,29 @@ class DBAPI
 	public static function get_row_value($table_name, $by_col_name_and_value, $get_col_name) 
 	{
 		$db = DB::get_dblink();
+		
 		//Check table existance and more than 0 rows
 		//Check columnes existance
-		$bind_values = '';
-		$bind_types = '';
-		$by_cols = '';
-		foreach ($by_col_name_and_value as $col => $val) {
-			$by_cols = $by_cols.','.$col.'= ?';
-			list($val,$bind_type) = self::get_value_and_type($val);
-			$bind_types = $bind_types.$bind_type;
-			$bind_values = $bind_values.','.$val; 
-		}
-		$bind_values = substr($bind_values, 1);
-		$by_cols = substr($by_cols, 1);
 		
-		$query = 'SELECT '.$get_col_name.' FROM '.$table_name.' WHERE '. $by_cols;
+		$bindParam = new BindParam();
+		$qArray = array();
+		
+		$query = 'SELECT '.$get_col_name.' FROM '.$table_name.' WHERE ';
+		
+		foreach ($by_col_name_and_value as $col => $val) {
+			$qArray[] = $col.' = ?';
+			list($val,$bind_type) = self::get_value_and_type($val);
+			$bindParam->add($bind_type, $val);
+		}
+		$query .= implode(' AND ', $qArray);
+				
 		$sql_stmt = $db->prepare($query);
+		
 		if($db->errno > 0){
 			throw new SKHR_Exception(self::TAG.$db->error,Messages::PREPARE_QUARY_FAILED);
 		}
-		$sql_stmt->bind_param($bind_types, $bind_values);
+		
+		call_user_func_array(array($sql_stmt, 'bind_param'), $bindParam->get());
 		$sql_stmt->execute();
 		
 		$db->commit();
@@ -37,6 +40,7 @@ class DBAPI
 		$sql_stmt->bind_result($returned_get_col_name);
 		$res_array = array();
 		while ($sql_stmt->fetch()) {
+			echo 'Quary Result: '.$returned_get_col_name. "\n";
 			array_push($res_array, $returned_get_col_name);
 		}
 		$sql_stmt->free_result();
@@ -253,6 +257,32 @@ class DBAPI
 				break;
 		}
 		return array($val, $type);
+	}
+}
+
+class BindParam
+{
+	private $values = array(), $types = '';
+
+	public function add( $type, &$value ){
+		$this->values[] = $value;
+		$this->types .= $type;
+	}
+
+	public function get(){
+		return self::refValues(array_merge(array($this->types), $this->values));
+	}
+	
+	function refValues($arr)
+	{
+		if (strnatcmp(phpversion(),'5.3') >= 0) //Reference is required for PHP 5.3+
+		{
+			$refs = array();
+			foreach($arr as $key => $value)
+				$refs[$key] = &$arr[$key];
+			return $refs;
+		}
+		return $arr;
 	}
 }
 

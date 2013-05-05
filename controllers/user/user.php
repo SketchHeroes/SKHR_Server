@@ -100,7 +100,7 @@ class UserLogin {
 	function __construct(array $data) 
 	{	
 		$request_token = (isset($data['token'])) ? $data['token'] : null;
-		$this->data_to_store = TableDataManager::render_server_data($data, TableDataManager::USER_TABLE_INI_FILE);
+		$this->data_to_store = TableDataManager::render_server_data($data, Table::USER_TABLE_INI_FILE);
 		$this->data_to_store['token'] = $request_token;
 		if (!isset($this->data_to_store['type'])) {
 			throw new SKHR_Exception(self::TAG.' type is mandatory for login action ', Messages::MANDATORY_FIELD_MISSING);
@@ -124,7 +124,7 @@ class UserLogin {
 					'fb_id' => $this->data_to_store['fb_id']
 			);
 		}
-		$qres = DBAPI::get_row_value(Table::USER,$by_col_values, 'user_id');
+		$qres = DBAPI::get_row_value(Table::USER, $by_col_values, 'user_id');
 		if ($qres == array()) {
 			throw new SKHR_Exception(self::TAG.' User is not registered.', Messages::LOGIN_FAILED);
 		} elseif (count($qres) > 1) {
