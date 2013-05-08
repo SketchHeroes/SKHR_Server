@@ -43,6 +43,7 @@ class UserRegister {
 		$this->result['data'] = $this->data_to_store;
 		$tk = UserToken::new_token_for_user($this->data_to_store['user_id'], $this->data_to_store);
 // 		echo 'token: '.$tk. "\n"; 
+//***************************************** Send Verification Code to mail
 		$this->result['data']['token'] = $tk;
 	}
 	

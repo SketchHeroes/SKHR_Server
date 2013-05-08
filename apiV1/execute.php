@@ -63,7 +63,20 @@ class Executor {
 		$this->content_type = 'application/json';
 	}
 	
-	private function post_user_login($data) {
+	private function post_user_verify($data)
+	{
+		$ddata = json_decode($data, TRUE);
+		//verify the data
+	
+		$ur = new UserVerifiy($ddata);
+		$this->exit_code = $ur->result['code'];
+		$this->body= json_encode($ur->result['data']);
+		$this->content_type = 'application/json';
+	}
+	
+	
+	private function post_user_login($data) 
+	{
 		$ddata = json_decode($data, TRUE);
 		$ul = new UserLogin($ddata);
 		$this->exit_code = $ul->result['code'];
