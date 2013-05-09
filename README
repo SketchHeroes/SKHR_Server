@@ -57,3 +57,8 @@ Configure the http server document root:
 /etc/apache2/apache2.conf
 	
 	AccessFileName .htaccess
+
+-------------- PEAR installation - Sending Mail via Gmail accountn --------------
+sudo pear install Mail-1.2.0
+sudo pear install Net_SMTP
+

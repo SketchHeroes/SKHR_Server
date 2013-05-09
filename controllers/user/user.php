@@ -86,6 +86,46 @@ class UserRegister {
 		$this->result['code'] = Messages::REGISTRATION_SUCCEDED;
 	}
 	
+	private function send_verification_mail($user_id, $user_email) {
+		
+		$verification_code = 123455;
+		$verification_code_data = array (
+				'code' => $verification_code,
+				'user_id' => $user_id
+		);
+		$verify_code_id = DBAPI::add_row_with_values(Table::VERIFICATION_CODES, $verification_code_data);
+		
+		require_once "Mail.php";
+		
+		$from = "<skhrServe@gmail.com>";
+		$to = "<ronend4@gmail.com>";
+		$subject = "Hi!";
+		$body = "A trial mail from SKHR SERVER,\n\nHow are you?\n\This is so cool.";
+		
+		$host = "ssl://smtp.gmail.com";
+		$port = "465";
+		$username = "ronen@sketchheroes.com";  //<> give errors
+		$password = "skhr^d78-$";
+		
+		$headers = array ('From' => $from,
+				'To' => $to,
+				'Subject' => $subject);
+		$smtp = Mail::factory('smtp',
+				array ('host' => $host,
+						'port' => $port,
+						'auth' => true,
+						'username' => $username,
+						'password' => $password));
+		
+		$mail = $smtp->send($to, $headers, $body);
+		
+		if (PEAR::isError($mail)) {
+			echo("<p>" . $mail->getMessage() . "</p>");
+		} else {
+			echo("<p>Message successfully sent!</p>");
+		}
+	}
+	
 }
 
 class UserLogin {

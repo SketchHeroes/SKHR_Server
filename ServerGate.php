@@ -13,6 +13,7 @@ class ServerGate
 {
 	public function __construct()
 	{
+		
 		list($exit_code, $body, $content_type, $additional_info) = array(-1, 'Empty', 'text/html', 'No Additional Info');
 		
 		$rest_request = AcceptRequest::processRequest();
@@ -39,6 +40,7 @@ class ServerGate
 }
 
 $SG = new ServerGate();
+
 
 ?>
 
