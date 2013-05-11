@@ -1,6 +1,6 @@
 <?php
 foreach (glob("controllers/*/*.php") as $filename) {require_once $filename;}
-// require_once
+require_once 'interface_data_manager.php';
 
 class Executor {
 	
@@ -55,7 +55,9 @@ class Executor {
 	private function post_user_register($data) 
 	{
 		$ddata = json_decode($data, TRUE);
-		//verify the data
+	
+		$ini = ($ddata['type'] == 'skhr') ? 'post_user_register.ini' : 'post_user_register_facebook.ini';
+		DataManager::process_data($ddata, $ini);
 		
 		$ur = new UserRegister($ddata);
 		$this->exit_code = $ur->result['code'];
@@ -66,8 +68,10 @@ class Executor {
 	private function post_user_verify($data)
 	{
 		$ddata = json_decode($data, TRUE);
-		//verify the data
-	
+		
+		$ini = 'post_user_verify.ini';
+		DataManager::process_data($ddata, $ini);
+		
 		$ur = new UserVerifiy($ddata);
 		$this->exit_code = $ur->result['code'];
 		$this->body= json_encode($ur->result['data']);
@@ -78,6 +82,10 @@ class Executor {
 	private function post_user_login($data) 
 	{
 		$ddata = json_decode($data, TRUE);
+		
+		$ini = ($ddata['type'] == 'skhr') ? 'post_user_login.ini' : 'post_user_login_facebook.ini';
+		DataManager::process_data($ddata, $ini);
+		
 		$ul = new UserLogin($ddata);
 		$this->exit_code = $ul->result['code'];
 		$this->body= json_encode($ul->result['data']);

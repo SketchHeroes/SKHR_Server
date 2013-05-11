@@ -1,6 +1,7 @@
 <?php
 require_once("constants.php");
 
+
 class DBAPI 
 {
 	const TAG = "dbapi.php, DBAPI: ";
@@ -221,6 +222,14 @@ class DBAPI
 		echo self::TAG.'pass'."\n";
 	
 	}
+
+	/*----------------- Run MySQL scripts ------------------*/
+	public static function run_mysql_script($script) {
+		$db = DB::get_dblink();
+		echo self::TAG.'pass'."\n";
+		
+		
+	}
 	
 	
 	private function get_value_and_type($val) {
@@ -258,6 +267,7 @@ class DBAPI
 		}
 		return array($val, $type);
 	}
+
 }
 
 class BindParam

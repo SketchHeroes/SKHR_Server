@@ -1,5 +1,20 @@
 
 <?php
+// TODO
+// - complete ini files for login/register and verify
+// - add token to fb register ini file
+// - return token for verification request
+// - complete data base scripts for more tables
+// - complete data base api class
+// - complete verify class
+// - convert the user classes to one userRutiens class?
+// - new excptions / exit-codes  list
+
+
+
+
+
+
 // Client side GET:
 // curl -v -H "Accept: application/json" -H "Content-type: application/json" -X GET 'http://localhost:80/rest/?request=users&ddd=123&6666=dfgh'
 // Client side POST:
