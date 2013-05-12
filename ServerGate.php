@@ -1,8 +1,6 @@
 
 <?php
 // TODO
-// - complete ini files for login/register and verify
-// - add token to fb register ini file
 // - return token for verification request
 // - complete data base scripts for more tables
 // - complete data base api class

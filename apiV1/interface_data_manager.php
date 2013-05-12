@@ -59,6 +59,10 @@ class DataManager {
 		}
 	}
 	
+	final private function encode_password($value) {
+		return password_hash($value, PASSWORD_DEFAULT);
+	}
+	
 	// ---------------- VALIDATORS:
 	final private function validate_column_value(array $validate_info, $value) {
 		if (array_key_exists('method', $validate_info)) {
