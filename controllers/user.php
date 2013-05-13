@@ -5,31 +5,14 @@ require_once("database/dbapi.php");
 require_once("database/tables/tables.php");
 require_once 'controllers/utilities';
 
-class RequestData {
-	
-	final public static function verify_mandatory_fields($fields_list, array $data) 
-	{
-		$mandatory_fields = preg_split('/[\s]+/', $fields_list);
-		foreach ($mandatory_fields as $field_name) {
-			if (!array_key_exists($field_name, $data)) {
-				throw new SKHR_Exception(self::TAG.' '.$field_name.' is mandatory field for this action ', Messages::MANDATORY_FIELD_MISSING);
-			}
-		}
-	}
-	
-}
-
-
-
 class UserRegister {
 	
 	const TAG = 'user.php, UserRegister:'; 
 	
 	public $result = array('code' => 0, 'data' => array());
 	private $data_to_store = array();
-	
 	function __construct(array $data) {
-		$this->data_to_store = TableDataManager::render_server_data($data, Table::USER_TABLE_INI_FILE);
+		$this->data_to_store = $data;
 		$this->register();
 	}
 	
@@ -41,8 +24,12 @@ class UserRegister {
 		}
 		
 		$this->create_new_user();
-		$this->result['data'] = $this->data_to_store;
+		$this->result['data']['user_id'] = $this->data_to_store['user_id'];
 		$tk = UserToken::new_token_for_user($this->data_to_store['user_id'], $this->data_to_store);
+		
+		if (condition) {
+			;
+		}
 // 		echo 'token: '.$tk. "\n"; 
 //***************************************** Send Verification Code to mail
 		$this->result['data']['token'] = $tk;

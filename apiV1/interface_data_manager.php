@@ -11,35 +11,37 @@
 class DataManager {
 	const TAG = 'interface_data_manager.php, DataManager:';
 	
-	final public static function process_data(array $data, $ini_file)
+	final public static function process_data(array $process_data, $ini_file)
 	{
-		$data_to_store = array();
+		$result_data = array();
 		$columns =  parse_ini_file($ini_file,true);
 		foreach ($columns as $key => $fieldP) {
 			$is_mandatory = (array_key_exists('is_mandatory', $fieldP)) ? $fieldP['is_mandatory'] : false;
 			
-			if (!array_key_exists($key, $data)) {
-				$stored_key = (array_key_exists('stored_name', $fieldP)) ? $fieldP['stored_name'] : $key;
+			if (!array_key_exists($key, $process_data)) {
+				$process_key = (array_key_exists('name', $fieldP)) ? $fieldP['name'] : $key;
 				// Validate value:
 				if (array_key_exists('validate', $fieldP)) {
-					call_user_func('self::validate_column_value', $fieldP['validate'], $data[$key]);
+					call_user_func('self::validate_column_value', $fieldP['validate'], $process_data[$key]);
 				}
 				// Convert to stored value:
 				if (array_key_exists('rule', $fieldP)) {
-					$data_to_store[$stored_key] = call_user_func('self::convertion_rule', $val['rule'], $data[$key]);
+					$result_data[$process_key] = call_user_func('self::convertion_rule', $val['rule'], $process_data[$key]);
 				} else {
-					$data_to_store[$stored_key] = $data[$key];
+					$result_data[$process_key] = $process_data[$key];
 				}
+				unset($process_data[$process_key]);
 			} elseif ($is_mandatory) {
-				throw new SKHR_Exception(self::TAG. 'missing missing mandatory field for:  '.$ini_file, Messages::INVALID_FIELD_VALUE);
+				throw new SKHR_Exception(self::TAG. 'missing missing mandatory field for:  '.$ini_file, ExitCode::INVALID_FIELD_VALUE);
 			}
-			
-			
 		}
-		return $data_to_store;
+		if ($process_data != array()) {
+			echo 'Warning:Excess DATA: '.printr($process_data);
+		}
+		return $result_data;
 	}
 	
-	// ---------------- RULES:
+	// ---------------- RULE:
 	# at the ini file, the rule keys are either 'method' or discret values.
 	final private function convertion_rule(array $rule_info, $value) {
 		if (array_key_exists('method', $rule_info)) {
@@ -59,6 +61,7 @@ class DataManager {
 		}
 	}
 	
+	// ---------------- RULE Methods:
 	final private function encode_password($value) {
 		return password_hash($value, PASSWORD_DEFAULT);
 	}
@@ -81,6 +84,7 @@ class DataManager {
 		return $res;
 	}
 	
+	// ---------------- VALIDATORS Methods:
 	final private function validate_email($email, $restrictions) {
 		if (filter_var($email,FILTER_VALIDATE_EMAIL) == FALSE) {
 			throw new SKHR_Exception(self::TAG.'Field: email. ', Messages::INVALID_FIELD_VALUE);

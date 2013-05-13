@@ -1,5 +1,5 @@
 <?php
-foreach (glob("controllers/*/*.php") as $filename) {require_once $filename;}
+foreach (glob("controllers/*.php") as $filename) {require_once $filename;}
 require_once 'interface_data_manager.php';
 
 class Executor {
@@ -71,8 +71,10 @@ class Executor {
 		
 		$ini = 'post_user_verify.ini';
 		DataManager::process_data($ddata, $ini);
-		
 		$ur = new UserVerifiy($ddata);
+		$ini = 'post_user_verify_response.ini';
+		DataManager::process_data($ur->result['data'], $ini);
+		
 		$this->exit_code = $ur->result['code'];
 		$this->body= json_encode($ur->result['data']);
 		$this->content_type = 'application/json';
@@ -85,8 +87,10 @@ class Executor {
 		
 		$ini = ($ddata['type'] == 'skhr') ? 'post_user_login.ini' : 'post_user_login_facebook.ini';
 		DataManager::process_data($ddata, $ini);
-		
 		$ul = new UserLogin($ddata);
+		$ini = ($ddata['type'] == 'skhr') ? 'post_user_login_response.ini' : 'post_user_login_facebook_response.ini';
+		DataManager::process_data($ul->result['data'], $ini);
+		
 		$this->exit_code = $ul->result['code'];
 		$this->body= json_encode($ul->result['data']);
 		$this->content_type = 'application/json';

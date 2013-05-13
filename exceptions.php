@@ -34,16 +34,16 @@ abstract class StatusCode
 	const REQUEST_ENTITY_TOO_LARGE = 413;
 	const REQUEST_URI_TOO_LONG = 414;
 	const UNSUPPORTED_MEDIA_TYPE = 415;
-	const 416 => 'Requested Range Not Satisfiable',
-	const 417 => 'Expectation Failed',
-	const 500 => 'Internal Server Error',
-		const 501 => 'Not Implemented',
-	const 502 => 'Bad Gateway',
-	const 		503 => 'Service Unavailable',
-	const 		504 => 'Gateway Timeout',
-			505 => 'HTTP Version Not Supported'
-	
-	public static $status_messages = array(
+	const REQUESTED_RANGE_NOT_SATISFIABLE = 416;
+	const EXPECTATION_FAILED = 417;
+	const Internal_Server_Error = 500;
+	const NOT_IMPLEMENTED = 501;
+	const BAD_GATEWAY = 502;
+	const SERVICE_UNAVAILABLE = 503;
+	const GATEWAY_TIMEOUT = 504;
+	const HTTP_VERSION_NOT_SUPPORTED = 505;
+				
+	public static $message = array(
 			100 => 'Continue',
 			101 => 'Switching Protocols',
 			200 => 'OK',
@@ -89,7 +89,7 @@ abstract class StatusCode
 	
 }
 
-abstract class ExitCodes 
+abstract class ExitCode
 {
 	// User Registration:
 	const REGISTRATION_SUCCEDED_CODE = 100;
@@ -116,40 +116,38 @@ abstract class ExitCodes
 	const PREPARE_QUARY_FAILED = 131;
 	
 	const UNSUPPORTED_API_VERSION = 140;
-}
-
-abstract class ExitMessages {
 	
-	public static $exceptions = array(
-		// User Registration:
+	public static $message = array(
+			// User Registration:
 			self::REGISTRATION_SUCCEDED => 'Registration succeded',
 			self::UNKNOWN_ACCOUNT_TYPE => 'Unknown registration type. Should be 0 for skhr or 1 for facebook',
 			self::CREDENTIALS_ALREADY_IN_USE => 'The supplied credentials are already used by an exist user',
 			self::REGISTRATION_FAILED => 'Insert new user data row failed',
-			self::REGISTRATION_TOKEN_FAILED => 'Insert register token failed',		
+			self::REGISTRATION_TOKEN_FAILED => 'Insert register token failed',
 			self::CREDENTIALS_INVALID_EMAIL => 'Can\'t register user without valid Email address',
-			self::CREDENTIALS_INVALID_FB_ID => 'Can\'t register user without valid FB id ',	
+			self::CREDENTIALS_INVALID_FB_ID => 'Can\'t register user without valid FB id ',
 			self::CREDENTIALS_EMAIL_IS_MANDATORY => 'Email is a mandatory field for registration',
 			self::CREDENTIALS_FB_ID_IS_MANDATORY => 'Facebook id is a mandatory field for registration',
-		// Fields Validation messages:
+			// Fields Validation messages:
 			self::INVALID_FIELD_VALUE => 'Field value is invalid. Reason: Out of range or Wrong data type.',
-		// Token
+			// Token
 			self::TOKEN_INSERTION_FAILED => 'Failed to insert token to the db',
-		// MYSQLi failures
+			// MYSQLi failures
 			self::FAILED_TO_CONNECT_DB => 'Failed to connect to mysql db',
 			self::PREPARE_QUARY_FAILED => 'Failed to prepare quary',
 			self::TOKEN_UPDATE_FAILED => 'Failed to update token'
 	);
 }
 
+
 class SKHR_Exception extends Exception {
 	
 	public function __construct ($message = null, $code = null, $previous = null) {
-		$this->message = Messages::$exceptions[$code].':'. "\n" .$message;
+		$this->message = ExitCode::$message[$code].':'. "\n" .$message;
 		$this->code = $code;
 	}
 	
-	public static function exception2Status ($code) {
+	public static function getStatusCode ($exit_code) {
 		$a = array(
 				100 => 201,
 				101 => 400,
@@ -165,7 +163,7 @@ class SKHR_Exception extends Exception {
 				130 => 500,
 				131 => 500
 		);	
-		return $a[$code];
+		return $a[$exit_code];
 	}
 }
 
