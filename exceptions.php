@@ -92,7 +92,7 @@ abstract class StatusCode
 abstract class ExitCode
 {
 	// User Registration:
-	const REGISTRATION_SUCCEDED_CODE = 100;
+	const REGISTRATION_SUCCEDED = 100;
 	
 	const UNKNOWN_ACCOUNT_TYPE = 101; 
 	const CREDENTIALS_ALREADY_IN_USE = 102;

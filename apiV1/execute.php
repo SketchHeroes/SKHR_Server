@@ -9,6 +9,8 @@ class Executor {
 	private $content_type = 'text/html';
 	private $additional_info = '';
 	
+	private $type = 'skhr';
+	 
 	public function __construct($rest_request) 
 	{
 		$rsrc = $rest_request->getResource();
@@ -20,9 +22,12 @@ class Executor {
 		
 		$method_name = $http_method.'_'.$resource.'_'.$command;
 		
+		$ddata = json_decode($data, TRUE);
+		$this->type = $ddata['type'];
+		
 		try 
 		{
-			call_user_func('self::'.$method_name, $data);
+			call_user_func('self::'.$method_name, $ddata);
 		} 
 		catch (SKHR_Exception $she) 
 		{
@@ -54,12 +59,10 @@ class Executor {
 	
 	private function post_user_register($data) 
 	{
-		$ddata = json_decode($data, TRUE);
-	
-		$ini = ($ddata['type'] == 'skhr') ? 'post_user_register.ini' : 'post_user_register_facebook.ini';
-		DataManager::process_data($ddata, $ini);
+		$ini = ($this->type == 'skhr') ? 'post_user_register.ini' : 'post_user_register_facebook.ini';
+		DataManager::process_data($data, $ini);
 		
-		$ur = new UserRegister($ddata);
+		$ur = new UserRegister($data);
 		$this->exit_code = $ur->result['code'];
 		$this->body= json_encode($ur->result['data']);
 		$this->content_type = 'application/json';
@@ -67,11 +70,9 @@ class Executor {
 	
 	private function post_user_verify($data)
 	{
-		$ddata = json_decode($data, TRUE);
-		
 		$ini = 'post_user_verify.ini';
-		DataManager::process_data($ddata, $ini);
-		$ur = new UserVerifiy($ddata);
+		DataManager::process_data($data, $ini);
+		$ur = new UserVerifiy($data);
 		$ini = 'post_user_verify_response.ini';
 		DataManager::process_data($ur->result['data'], $ini);
 		
@@ -83,12 +84,10 @@ class Executor {
 	
 	private function post_user_login($data) 
 	{
-		$ddata = json_decode($data, TRUE);
-		
-		$ini = ($ddata['type'] == 'skhr') ? 'post_user_login.ini' : 'post_user_login_facebook.ini';
-		DataManager::process_data($ddata, $ini);
-		$ul = new UserLogin($ddata);
-		$ini = ($ddata['type'] == 'skhr') ? 'post_user_login_response.ini' : 'post_user_login_facebook_response.ini';
+		$ini = ($this->type == 'skhr') ? 'post_user_login.ini' : 'post_user_login_facebook.ini';
+		DataManager::process_data($data, $ini);
+		$ul = new UserLogin($data);
+		$ini = ($this->type == 'skhr') ? 'post_user_login_response.ini' : 'post_user_login_facebook_response.ini';
 		DataManager::process_data($ul->result['data'], $ini);
 		
 		$this->exit_code = $ul->result['code'];

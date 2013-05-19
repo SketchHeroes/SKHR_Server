@@ -1,16 +1,73 @@
 <?php
 require_once("exceptions.php");
-require_once("database/constants.php");
+require_once("constants.php");
 require_once("database/dbapi.php");
-require_once("database/tables/tables.php");
-require_once 'controllers/utilities';
+require_once("database/tables.php");
+require_once("controllers/utilities");
 
-class UserRegister {
+class User {
+	const FACEBOOK_USER = 1;
+	const GOOGLE_USER = 2;
+	const SKHR_USER = 0;
+	
+	const UNIQUE_FIELD_FACEBOOK = 'fb_id';
+	const UNIQUE_FIELD_GOOGLE = 'google_id';
+	const UNIQUE_FIELD_SKHR = 'email';
+	
+	public $result = array('code' => 0, 'data' => array());
+	
+	public $type;
+	
+	private $user_id = -1;
+	private $unique_field;
+	
+	function __construct($type) {
+		$this->type = $type;
+	}
+	
+	function set_user_id($user_data) {
+		$this->user_id = -1;
+	}
+	
+	function get_user_id($user_data) {
+		if ($this->user_id == -1) {
+			$this->set_user_id($user_data);
+		}
+		return $this->user_id;
+	}
+	
+	function set_unique_field() {
+		switch ($this->type) {
+			case self::SKHR_USER:
+				$this->unique_field = self::UNIQUE_FIELD_SKHR;
+			break;
+			case self::FACEBOOK_USER:
+				$this->unique_field = self::UNIQUE_FIELD_FACEBOOK;
+			break;
+			case self::GOOGLE_USER:
+				$this->unique_field = self::UNIQUE_FIELD_GOOGLE;
+			break;
+			default:
+				throw new SKHR_Exception('Account type: '.$this->type.' is not supported.', ExitCode::UNKNOWN_ACCOUNT_TYPE);
+			break;
+		}
+	}
+	
+	function get_unique_field() {
+		if ($this->unique_field == '') {
+			$this->set_unique_field();
+		}
+		return $this->unique_field;
+	}
+	
+	
+}
+class UserRegister extends User {
 	
 	const TAG = 'user.php, UserRegister:'; 
 	
-	public $result = array('code' => 0, 'data' => array());
 	private $data_to_store = array();
+	
 	function __construct(array $data) {
 		$this->data_to_store = $data;
 		$this->register();
@@ -20,45 +77,32 @@ class UserRegister {
 		try {
 			$this->verify_credentials_uniqueness();
 		} catch (SKHR_Exception $e) {
-// 			echo self::TAG.$e;
+			echo self::TAG.$e;
 		}
 		
 		$this->create_new_user();
 		$this->result['data']['user_id'] = $this->data_to_store['user_id'];
-		$tk = UserToken::new_token_for_user($this->data_to_store['user_id'], $this->data_to_store);
 		
-		if (condition) {
-			;
+		if (!$this->data_to_store['verified']) {
+			self::send_verification_mail($this->data_to_store['user_id'], $this->data_to_store['email']);
 		}
-// 		echo 'token: '.$tk. "\n"; 
-//***************************************** Send Verification Code to mail
-		$this->result['data']['token'] = $tk;
+		
 	}
 	
 	private function verify_credentials_uniqueness() {
-		if (!array_key_exists('type', $this->data_to_store)) {
-			throw new SKHR_Exception(self::TAG.' facebook or skhr must be set for type index. ', Messages::INVALID_FIELD_VALUE);
-		}
 		switch ($this->data_to_store['type']) {
 			case 0:
-				if (!array_key_exists('email', $this->data_to_store)) {
-					throw new SKHR_Exception(self::TAG, Messages::CREDENTIALS_EMAIL_IS_MANDATORY);
-				}
-				$quary_res = DBAPI::get_row_value(Table::USER,array('email'=>$this->data_to_store['email']), 'user_id');
-				if ( $quary_res!= array()) {
-					throw new SKHR_Exception(self::TAG, Messages::CREDENTIALS_ALREADY_IN_USE);
-				}
+				$unique_field_name = 'email';
 				break;
 			case 1:
-				if (!array_key_exists('fb_id', $this->data_to_store)) {
-					throw new SKHR_Exception(self::TAG, Messages::CREDENTIALS_FB_ID_IS_MANDATORY);
-				}
-				if (DBAPI::get_row_value(Table::USER, array('fb_id'=>$this->data_to_store['fb_id']), 'user_id') != array()) {
-					throw new SKHR_Exception(self::TAG, Messages::CREDENTIALS_ALREADY_IN_USE);
-				}
+				$unique_field_name = 'fb_id';
 			default:
-				throw new SKHR_Exception(self::TAG, Messages::UNKNOWN_ACCOUNT_TYPE);;
+				throw new SKHR_Exception(self::TAG, ExitCode::UNKNOWN_ACCOUNT_TYPE);;
 				break;
+		}
+		$quary_res = DBAPI::get_row_value(Table::USER,array($unique_field_name=>$this->data_to_store[$unique_field_name]), 'user_id');
+		if ($quary_res!= array()) {
+			throw new SKHR_Exception(self::TAG, ExitCode::CREDENTIALS_ALREADY_IN_USE);
 		}
 	}
 		
@@ -69,9 +113,9 @@ class UserRegister {
 		$res = DBAPI::add_row_with_values(Table::USER, $this->data_to_store);
 		$this->data_to_store['user_id'] = $res;
 		if ($this->data_to_store['user_id']==0) {
-			$this->result['code'] = Messages::REGISTRATION_FAILED;
+			$this->result['code'] = ExitCode::REGISTRATION_FAILED;
 		}
-		$this->result['code'] = Messages::REGISTRATION_SUCCEDED;
+		$this->result['code'] = ExitCode::REGISTRATION_SUCCEDED;
 	}
 	
 	private function send_verification_mail($user_id, $user_email) {
@@ -103,7 +147,7 @@ class UserLogin {
 		$this->data_to_store = TableDataManager::render_server_data($data, Table::USER_TABLE_INI_FILE);
 		$this->data_to_store['token'] = $request_token;
 		if (!isset($this->data_to_store['type'])) {
-			throw new SKHR_Exception(self::TAG.' type is mandatory for login action ', Messages::MANDATORY_FIELD_MISSING);
+			throw new SKHR_Exception(self::TAG.' type is mandatory for login action ', ExitCode::MANDATORY_FIELD_MISSING);
 		}
 		$this->login();
 	}
@@ -126,9 +170,9 @@ class UserLogin {
 		}
 		$qres = DBAPI::get_row_value(Table::USER, $by_col_values, 'user_id');
 		if ($qres == array()) {
-			throw new SKHR_Exception(self::TAG.' User is not registered.', Messages::LOGIN_FAILED);
+			throw new SKHR_Exception(self::TAG.' User is not registered.', ExitCode::LOGIN_FAILED);
 		} elseif (count($qres) > 1) {
-			throw new SKHR_Exception(self::TAG.' More than one user own these credentials.', Messages::LOGIN_FAILED);
+			throw new SKHR_Exception(self::TAG.' More than one user own these credentials.', ExitCode::LOGIN_FAILED);
 		}
 		$user_id = $qres[0];
 		
@@ -174,7 +218,7 @@ class UserToken {
 		$token_data_store = array('token' => $token, 'expiry' => $expiry,'user_id' => $user_id);
 		$db_token_id = DBAPI::add_row_with_values(Table::TOKEN, $token_data_store);
 		if (!$db_token_id) {
-			throw new SKHR_Exception(self::TAG.'Failed to insert new user token',Messages::TOKEN_INSERTION_FAILED);	
+			throw new SKHR_Exception(self::TAG.'Failed to insert new user token',ExitCode::TOKEN_INSERTION_FAILED);	
 		}
 	}
 	
@@ -182,7 +226,7 @@ class UserToken {
 		$token_data_store = array('token' => $token, 'expiry' => $expiry);
 		$db_token_id = DBAPI::update_row_with_values(Table::TOKEN, $token_data_store, $user_id);
 		if ($db_token_id) {
-			throw new SKHR_Exception(self::TAG.'Failed to update user\'s token',Messages::TOKEN_UPDATE_FAILED);	
+			throw new SKHR_Exception(self::TAG.'Failed to update user\'s token',ExitCode::TOKEN_UPDATE_FAILED);	
 		}
 	}
 		
