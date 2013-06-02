@@ -1,4 +1,11 @@
 SKHR Server, API version 1.0:
+New SKHR User Flow:
+register (email, password, device id, ) - return "user_id"
+verify (verification code, user id) - return "token"
+
+New Third party (facebook, google) User Flow:
+login (fb_id, fb_link, token, token_expiry, device_id, verified) - return "user_id" 
+
 
 POST /api/v1/user/register HTTP/1.1
 json: $data = {
@@ -57,3 +64,9 @@ Configure the http server document root:
 /etc/apache2/apache2.conf
 	
 	AccessFileName .htaccess
+
+-------------- PEAR installation - Sending Mail via Gmail accountn --------------
+sudo pear install Mail-1.2.0
+sudo pear install Net_SMTP
+fix for pear: https://github.com/centralnic/php-epp/commit/e15db31f72b1e3d1ff8532659190fbd8af70bbee
+

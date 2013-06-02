@@ -1,8 +1,12 @@
 <?php
-class RestUtils
+
+// require_once("api/request/rest.php");
+
+class AcceptRequest
 {
-	const TAG = 'RestUtils:';
+	const TAG = 'AcceptRequest:';
 	const APIV = 'v1';
+	
 	public static function processRequest()
 	{
 		// get our verb
@@ -43,30 +47,6 @@ class RestUtils
 			$return_obj->setData(json_decode($data));
 		}
 		return $return_obj;
-	}
-	
-	public static function sendResponse($status = 200, $body = '', $content_type = 'text/html')
-	{
-		$status_header = 'HTTP/1.1 ' . $status . ' ' . self::getStatusCodeMessage($status);
-		header($status_header);
-		header('Content-type: ' . $content_type);
-	
-		if($body != '') {
-			echo $body;
-			exit;
-		}
-		else {
-			// servers don't always have a signature turned on (this is an apache directive "ServerSignature On")
-			$signature = ($_SERVER['SERVER_SIGNATURE'] == '') ? $_SERVER['SERVER_SOFTWARE'] . ' Server at ' . $_SERVER['SERVER_NAME'] . ' Port ' . $_SERVER['SERVER_PORT'] : $_SERVER['SERVER_SIGNATURE'];
-			echo self::getStatusCodeMessage($status). "\n" . $signature;
-			exit;
-		}
-	}
-	
-	public static function getStatusCodeMessage($status)
-	{
-		$codes = parse_ini_file("status_messages.ini");
-		return (isset($codes[$status])) ? $codes[$status] : '';
 	}
 }
 
