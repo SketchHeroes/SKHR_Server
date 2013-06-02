@@ -2,6 +2,8 @@
 class UTILS {
 	
 	public static function send_mail_via_gmail_account($code, $email) {
+		echo 'Verification Mail to: '.$email.' with code: '.$code."/n";
+		return;
 		require_once "Mail.php";
 		 
 		$from = "<skhrServe@gmail.com>";
@@ -28,11 +30,12 @@ class UTILS {
 		
 		$mail = $smtp->send($to, $headers, $body);
 		
-		if (PEAR::isError($mail)) {
-			throw new SKHR_Exception('Send verification mail error: '.$mail->getMessage(), Messages::LOGIN_FAILED);
-		} else {
-			return true;
-		}
+// 		if (PEAR::isError($mail)) {
+// 			throw new SKHR_Exception('Send verification mail error: '.$mail->getMessage(), ExitCode::SEND_MAIL_FAILED);
+// 		} else {
+// 			return true;
+// 		}
+		return true;
 	}
 	
 	public static function genRandomString($length = 8) {

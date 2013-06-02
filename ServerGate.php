@@ -11,6 +11,7 @@
 // At the controllers part - use third party
 
 
+// phpinfo();
 
 
 // Client side GET:

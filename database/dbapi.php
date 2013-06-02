@@ -30,7 +30,7 @@ class DBAPI
 		$sql_stmt = $db->prepare($query);
 		
 		if($db->errno > 0){
-			throw new SKHR_Exception(self::TAG.$db->error,Messages::PREPARE_QUARY_FAILED);
+			throw new SKHR_Exception(self::TAG.$db->error,ExitCode::PREPARE_QUARY_FAILED);
 		}
 		
 		call_user_func_array(array($sql_stmt, 'bind_param'), $bindParam->get());
@@ -41,7 +41,6 @@ class DBAPI
 		$sql_stmt->bind_result($returned_get_col_name);
 		$res_array = array();
 		while ($sql_stmt->fetch()) {
-			echo 'Quary Result: '.$returned_get_col_name. "\n";
 			array_push($res_array, $returned_get_col_name);
 		}
 		$sql_stmt->free_result();
@@ -50,12 +49,53 @@ class DBAPI
 	
 	//$by_col_name_and_value = hash array of key,value as column,value
 	//$get_cols_name = array of cols' names
-	public static function get_row_values($table_name, $by_col_name_and_value, $get_cols_name) 
+	public static function get_row_values($table_name, $by_col_name_and_value, $get_cols_names) 
 	{
 		$db = DB::get_dblink();
-		//Check table existance and more than 0 rows
-		//Check columnes existance
-// 		echo self::TAG.'pass'."\n";
+		$bindParam = new BindParam();
+		$qArray = array();
+		
+		$get_cols_names_list = '';
+		$result_params = '';
+		foreach($get_cols_names as $col) {
+			$get_cols_names_list.=','.$col;
+			$result_params .=', $'.$col;
+		}
+		$get_cols_names_list = substr($get_cols_names_list, 1);
+		$result_params = substr($result_params, 1);
+		
+		$query = 'SELECT '.$get_cols_names_list.' FROM '.$table_name.' WHERE ';
+		
+		
+		foreach ($by_col_name_and_value as $col => $val) {
+			$qArray[] = $col.' = ?';
+			list($val,$bind_type) = self::get_value_and_type($val);
+			$bindParam->add($bind_type, $val);
+		}
+		$query .= implode(' AND ', $qArray);
+		
+		$sql_stmt = $db->prepare($query);
+		
+		if($db->errno > 0){
+			throw new SKHR_Exception(self::TAG.$db->error,ExitCode::PREPARE_QUARY_FAILED);
+		}
+		
+		call_user_func_array(array($sql_stmt, 'bind_param'), $bindParam->get());
+		$sql_stmt->execute();
+		
+		$db->commit();
+		
+		$bind_result_quary = '$sql_stmt->bind_result('.$result_params.');';
+		eval($bind_result_quary);
+		$res_array = array();
+		while ($sql_stmt->fetch()) {
+			foreach($get_cols_names as $value) {
+				@eval('$v = $'.$value.';');
+				$res_array[$value] = $v;
+			}
+		}
+		$sql_stmt->free_result();
+		return $res_array;
 	
 	}
 	
@@ -78,6 +118,10 @@ class DBAPI
 // 		echo self::TAG.'pass'."\n";
 	
 	}
+	
+	public static function is_value_exist_in_column($table_name, $col_name, $value) {
+		return false;
+	} 
 	
 	/*----------------- Add/Remove ROWS ------------------*/
 	//$col_name_and_value = array of key,value as column,value
@@ -111,7 +155,7 @@ class DBAPI
 // 		echo self::TAG.$query."\n";
 		$sql_stmt = $db->prepare($query);
 		if($db->errno > 0){
-			throw new SKHR_Exception(self::TAG.$db->error,Messages::PREPARE_QUARY_FAILED);
+			throw new SKHR_Exception(self::TAG.$db->error,ExitCode::PREPARE_QUARY_FAILED);
 		}
 		
 		$stmt_bind_param = '$sql_stmt->bind_param(\''.$bind_types.'\','.$bind_params.');';
@@ -130,7 +174,7 @@ class DBAPI
 		$db->commit();
 // 		echo self::TAG.'Total rows updated: ' . $db->affected_rows. "\n";
 		if ($sql_stmt->errno) {
-			throw new SKHR_Exception(self::TAG.$sql_stmt->error ,Messages::PREPARE_QUARY_FAILED);
+			throw new SKHR_Exception(self::TAG.$sql_stmt->error ,ExitCode::PREPARE_QUARY_FAILED);
 		} else {
 // 			echo self::TAG."Updated {$sql_stmt->affected_rows} rows"."\n". '*** id: '.$sql_stmt->insert_id. "\n";
 		}
@@ -183,11 +227,11 @@ class DBAPI
 	
 		// 		UPDATE `users` SET `user_email`='dimaj@ggrrr' WHERE  `user_id`=33;
 		$query = 'UPDATE '.$table_name.' SET '.$cols_update.' WHERE '.$cols_find.';';
-// 		 		echo self::TAG.$query."\n";
+		 		echo self::TAG.$query."\n";
 		$sql_stmt = $db->prepare($query);
 	
 		$stmt_bind_param = '$sql_stmt->bind_param(\''.$bind_types.'\','.$bind_params.');';
-// 		 		echo self::TAG.$stmt_bind_param. "\n";
+		 		echo self::TAG.$stmt_bind_param. "\n";
 		eval($stmt_bind_param);
 	
 		// 		echo self::TAG.'$bind_values: '.$bind_values. "\n";
@@ -206,21 +250,49 @@ class DBAPI
 		if ($sql_stmt->errno) {
 			echo self::TAG."FAILURE!!! " . $sql_stmt->error. "\n";
 		} else {
-			echo self::TAG."Updated". $sql_stmt->affected_rows. " rows"."\n";
+			echo self::TAG."Updated ". $sql_stmt->affected_rows. " rows"."\n";
 		}
+		$affected_rows = $sql_stmt->affected_rows;
+
 		$sql_stmt->close();
 		
-		return($db->affected_rows);
+		return($affected_rows);
 	
 	}
 	
 	public static function remove_row_identify_by_values($table_name, $by_col_name_and_value) {
 		$db = DB::get_dblink();
-		//Check table existance
-		//find Row
-		//Add row to archive table/DB
-		echo self::TAG.'pass'."\n";
+		
+		$bind_types = '';
+		$identifiers = '';
+		$identifiers_params = '';
+		$i = 0;
+		foreach ($by_col_name_and_value as $k => $v) {
+			list($val,$bind_type) = self::get_value_and_type($v);
+			$bind_types .= $bind_type;
+			$identifiers .= ', '.$k.' = ?';
+			$i++;
+			eval('$p'.$i.' = $val;'); 
+			$identifiers_params .= ', $p'.$i;
+		}
+		$identifiers = substr($identifiers, 1);
+		$identifiers_params = substr($identifiers_params, 1);
+		
+		$query = 'DELETE FROM '.$table_name.' WHERE '.$identifiers.' LIMIT 1';
+		$sql_stmt = $db->prepare($query);
+		if($db->errno > 0){
+			throw new SKHR_Exception(self::TAG.$db->error,ExitCode::PREPARE_QUARY_FAILED);
+		}
+		$stmt_bind_param = '$sql_stmt->bind_param(\''.$bind_types.'\','.$identifiers_params.');';
+		eval($stmt_bind_param);
+		
+		$sql_stmt->execute();
 	
+		$db->commit();
+	
+		$sql_stmt->close();
+		
+		return($db->affected_rows);
 	}
 
 	/*----------------- Run MySQL scripts ------------------*/
@@ -232,7 +304,7 @@ class DBAPI
 	}
 	
 	
-	private function get_value_and_type($val) {
+	private static function get_value_and_type($val) {
 		$type = 'i';
 // 		echo self::TAG.'val: '.$val."\n";
 // 		echo self::TAG.'type: '.gettype($val)."\n";
@@ -325,7 +397,7 @@ Class DB {
 		
 		self::$link = new mysqli(DBParams::DB_SERVER, DBParams::DB_USER, DBParams::DB_PASSWORD, DBParams::DB);
 		if(self::$link->connect_errno > 0){
-			throw new SKHR_Exception(self::TAG.self::$link->error ,Messages::FAILED_TO_CONNECT_DB);
+			throw new SKHR_Exception(self::TAG.self::$link->error ,ExitCode::FAILED_TO_CONNECT_DB);
 		}
 		self::$link->autocommit(FALSE);
 	}

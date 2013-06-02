@@ -3,208 +3,414 @@ require_once("exceptions.php");
 require_once("constants.php");
 require_once("database/dbapi.php");
 require_once("database/tables.php");
-require_once("controllers/utilities");
+require_once("controllers/utilities.php");
+require_once('packages/bcrypt.php');
 
 class User {
-	const FACEBOOK_USER = 1;
-	const GOOGLE_USER = 2;
-	const SKHR_USER = 0;
 	
-	const UNIQUE_FIELD_FACEBOOK = 'fb_id';
-	const UNIQUE_FIELD_GOOGLE = 'google_id';
-	const UNIQUE_FIELD_SKHR = 'email';
+	public $result = null;
 	
-	public $result = array('code' => 0, 'data' => array());
-	
-	public $type;
-	
-	private $user_id = -1;
-	private $unique_field;
-	
-	function __construct($type) {
-		$this->type = $type;
+	public function get_result()
+	{
+		return $this->result;
 	}
 	
-	function set_user_id($user_data) {
-		$this->user_id = -1;
+	public function set_result($code, $data, $additional_info = '')
+	{
+		$this->result = array('code' => $code, 'data' => $data, 'additional_info' => $additional_info);
 	}
 	
-	function get_user_id($user_data) {
-		if ($this->user_id == -1) {
-			$this->set_user_id($user_data);
-		}
-		return $this->user_id;
+	public $verified = null;
+	public $logged_in = null;
+	
+	public $stored_user_fields = null;
+	public $stored_user_data = null;
+	
+	public $user_id = null;
+	
+	public function __construct()
+	{
+		
 	}
 	
-	function set_unique_field() {
-		switch ($this->type) {
-			case self::SKHR_USER:
-				$this->unique_field = self::UNIQUE_FIELD_SKHR;
-			break;
-			case self::FACEBOOK_USER:
-				$this->unique_field = self::UNIQUE_FIELD_FACEBOOK;
-			break;
-			case self::GOOGLE_USER:
-				$this->unique_field = self::UNIQUE_FIELD_GOOGLE;
-			break;
-			default:
-				throw new SKHR_Exception('Account type: '.$this->type.' is not supported.', ExitCode::UNKNOWN_ACCOUNT_TYPE);
-			break;
+	public function set_stored_user_fields() {
+		if ($this->stored_user_fields == null) {
+			$this->stored_user_fields = array_keys(parse_ini_file(Table::USER_TABLE_INI_FILE, true));
 		}
 	}
 	
-	function get_unique_field() {
-		if ($this->unique_field == '') {
-			$this->set_unique_field();
+	public function set_verified($user_id) {
+		if ($this->verified != null) {return;}
+		$this->set_stored_user_data($user_id);
+		if (array_key_exists('verified', $this->stored_user_data)) {
+			if ($this->stored_user_data['verified'] == 1) {
+				$this->verified = true;
+			} else {
+				$this->verified = false;
+			}
 		}
-		return $this->unique_field;
 	}
 	
+	public function set_stored_user_data($user_id) {
+		if ($this->stored_user_data === null) {
+			$this->set_stored_user_fields();
+			$quary_res = DBAPI::get_row_values(Table::USER,array('user_id'=>$user_id), $this->stored_user_fields);
+			if ($quary_res!= array()) {
+				$this->stored_user_data = $quary_res;
+			}
+		}
+	}
+	
+	public function set_logged_in($user_id, $token) {
+		if ($this->logged_in == null) {
+			$this->logged_in = true;
+			$res = DBAPI::get_row_value(Table::TOKEN, array('user_id'=>$user_id, 'token'=>$token), 'expiry');
+			if ($res == array()) {
+				$this->logged_in = false;
+			} elseif (date(DATE_ATOM,time()) >= $res[o]) {
+				$this->logged_in = false;
+			}
+		}
+	}
 	
 }
-class UserRegister extends User {
+
+
+class UserSKHR extends User {
+	const TYPE = 0;
+	const UNIQUE_IDENTIFIER = 'email';
+
+	private $request_data = null;
 	
-	const TAG = 'user.php, UserRegister:'; 
-	
-	private $data_to_store = array();
-	
-	function __construct(array $data) {
-		$this->data_to_store = $data;
-		$this->register();
+	public function __construct($request_data)
+	{
+		parent::__construct();
+		$this->request_data = $request_data;
 	}
 	
-	private function register() {
-		try {
-			$this->verify_credentials_uniqueness();
-		} catch (SKHR_Exception $e) {
-			echo self::TAG.$e;
+	// Returns:
+	// 0 Success
+	// 1 General Error
+	// 2 User is already exist
+	// 3 Failed to create new user
+	// 4 Failed to send verification code
+	public function register() {
+		$code = 0;
+		$info = '';
+		$data = array();
+		if (UserFunctions::is_user_exist(self::UNIQUE_IDENTIFIER, $this->request_data[self::UNIQUE_IDENTIFIER]) == 0) {
+			$this->set_stored_user_fields();
+			$user_id = UserFunctions::create_new_user($this->stored_user_fields, $this->request_data);
+			if ($user_id > 0) {
+				$this->user_id = $user_id;
+				$this->set_stored_user_data($user_id);
+				$data = $this->stored_user_data;
+				if (UserFunctions::send_verification_mail($user_id, $this->request_data['email']) < 1) {
+					$code = ExitCode::FAILED_TO_SEND_VERIFICATION_MAIL;
+					$info = 'Failed to create new user';
+				}
+			} else {
+				$code = ExitCode::FAILED_TO_CREATE_NEW_USER;
+				$info = 'Failed to create new user';
+			}
+		} else {
+			$code = ExitCode::USER_ALREADY_EXIST;
+			$info = 'User with the supplied '.self::UNIQUE_IDENTIFIER.' : '.$this->request_data[self::UNIQUE_IDENTIFIER].' is already registered.';
+		}
+		$this->set_result($code, $data, $info);
+		return $code;
+	}
+	
+	// Returns:
+	// 0 Success
+	// 1 General Error
+	// 2 User is not exist (wrong identifier)
+	// 3 wrong password
+	// 4 User is not verified
+	// 5 Failed to create or store token
+	public function login() {
+		$code = 0;
+		$info = '';
+		$data = array();
+		$credentials = array(
+				'email' => $this->request_data['email']
+		);
+		$user_id = UserFunctions::identify_user_by_credentials($credentials);
+		
+		if ($user_id > 0) {
+			$this->set_stored_user_data($user_id);
+			$user_data = $this->stored_user_data;
+			
+			$bcrypt = new Bcrypt(12);
+			$hash = $user_data['password'];
+			$isGood = $bcrypt->verify($this->request_data['password'], $hash);
+			if ($isGood) {
+				$this->set_verified($user_id);
+				if ($this->verified) {
+					try {
+						$token = UserToken::token_for_user($user_id, $user_data);
+						$data['token'] = $token;
+					} catch (Exception $e) {
+						$code = ExitCode::FAILED_TO_CREATE_TOKEN;
+						$info = 'Failed to login, failed to create token: '.$e->getMessage()."\n";
+					}
+				} else {
+					$code = ExitCode::USER_IS_NOT_VERIFIED;
+					$info = 'Failed to login, user is not verified.';
+				}
+			} else {
+				$code = ExitCode::WRONG_PASSWORD;
+				$info = 'Failed to login, wrong password.';
+			}
+		} else {
+			$code = ExitCode::USER_NOT_EXIST;
+			$info = 'Failed to login, User with these credentials is not exist.';
+		}
+		$this->set_result($code, $data, $info);
+		return $code;
+	}
+	
+	// Returns:
+	// 0 Success
+	// 1 General Error
+	// 2 User is not exist
+	// 3 User is not verified
+	// 4 Failed to create or store token
+	public function verify() {
+		$code = 0;
+		$info = '';
+		$data = array();
+		
+		$user_id = $this->request_data['user_id'];
+		$vcode = $this->request_data['code'];
+		
+		$verification_code = UserFunctions::get_verification_code($user_id);
+		if ($verification_code != 0) {
+			if ($vcode == $verification_code) {
+				DBAPI::remove_row_identify_by_values(Table::VERIFICATION_CODES, array('user_id' => $user_id));
+				DBAPI::update_row_with_values(Table::USER, array('verified' => 1), array('user_id' => $user_id));
+				
+				$this->set_stored_user_data($user_id);
+				$user_data = $this->stored_user_data;
+				try {
+					$token = UserToken::token_for_user($user_id, $user_data);
+					$data = array('user_id' => $user_id, 'token' => $token);
+				} catch (Exception $e) {
+					$code = ExitCode::FAILED_TO_CREATE_TOKEN;
+					$info = 'Failed to create token, please login again';
+				}
+			} else {
+				$code = ExitCode::WRONG_VERIFICATION_CODE;
+				$info = 'Wrong verification code';
+			}
+		} else {
+			$code = ExitCode::VERIFICATION_CODE_NOT_EXIST;
+			$info = 'No verification code exist for this user';
 		}
 		
-		$this->create_new_user();
-		$this->result['data']['user_id'] = $this->data_to_store['user_id'];
-		
-		if (!$this->data_to_store['verified']) {
-			self::send_verification_mail($this->data_to_store['user_id'], $this->data_to_store['email']);
+		$this->set_result($code, $data, $info);
+	}
+	
+	// Returns:
+	// 0 Success
+	// 1 General Error
+	// 2 User is not exist
+	// 3 User is not verified
+	// 4 Failed to create or store token
+	public function forgot_password($email) {
+		$code = 0;
+		$info = '';
+		$data = array();
+	
+		if ($this->identify_user_by_credentials() < 1) {
+			$code = ExitCode::USER_NOT_EXIST;
+			$info = 'Failed to login, User with these credentials is not exist.';
+		}
+	
+		$this->set_result($code, $this->stored_user_data, $info);
+	}
+	
+}
+
+class UserFB extends User  {
+	const TYPE = 1;
+	const UNIQUE_IDENTIFIER = 'fb_id';
+	
+	private $request_data = null;
+	
+	public function __construct($request_data)
+	{
+		parent::__construct();
+		$this->request_data = $request_data;
+	}
+	
+	// Returns:
+	// 0 Success
+	// 1 General Error
+	// 2 User is not exist
+	// 3 User is not verified
+	// 4 Failed to create or store token
+	public function login() {
+		$code = 0;
+		$info = '';
+		$data = array();
+		if (UserFunctions::is_user_exist(self::UNIQUE_IDENTIFIER, $this->request_data[self::UNIQUE_IDENTIFIER]) == 0) {
+			$this->set_stored_user_fields();
+			$user_id = UserFunctions::create_new_user($this->stored_user_fields, $this->request_data);
+			if ( $user_id > 0) {
+				$this->user_id = $user_id;
+				$this->set_stored_user_data($user_id);
+				$data = $this->stored_user_data;
+			} else {
+				$code = ExitCode::FAILED_TO_CREATE_NEW_USER;
+				$info = 'Failed to create new user';
+			}
+		} else {
+			$credentials = array(
+					'fb_id' => $this->request_data['fb_id']
+			);
+			$user_id = UserFunctions::identify_user_by_credentials($credentials);
+			if ($user_id > 0) {
+				$this->set_stored_user_data($user_id);
+				$user_data = $this->stored_user_data;
+				if ($this->set_verified($user_id) == 1) {
+					try {
+						$token = UserToken::insert_token($user_id, $this->request_data['token'], $this->request_data['expiry']);
+					} catch (Exception $e) {
+						$code = ExitCode::FAILED_TO_CREATE_TOKEN;
+						$info = 'Failed to login, failed to create token';
+					}
+				} else {
+					$code = ExitCode::USER_IS_NOT_VERIFIED;
+					$info = 'Failed to login, user is not verified.';
+				}
+			}
+		}
+		$this->set_result($code, $data, $info);
+		return $code;
+	}
+}
+
+class UserGOOGLE extends User {
+	const TYPE = 2;
+	const UNIQUE_IDENTIFIER = 'google_id';
+	
+	// Returns:
+	// 0 Success
+	// 1 General Error
+	// 2 User is not exist
+	// 3 User is not verified
+	// 4 Failed to create or store token
+	public function login_via_google() {
+		$code = 0;
+		$info = '';
+		if ($this->identify_user_by_credentials() < 1) {
+			$code = ExitCode::USER_NOT_EXIST;
+			$info = 'Failed to login, User with these credentials is not exist.';
+		}
+	
+	
+		$this->set_result($code, $this->stored_user_data, $info);
+	}
+}
+
+class UserFunctions {
+	// Returns:
+	// 0 Not exist
+	// 1 Exist
+	public static function is_user_exist($unique_field, $unique_value) {
+		$quary_res = DBAPI::get_row_value(Table::USER,array($unique_field=>$unique_value),'user_id');
+		return ($quary_res != array()) ? 1 : 0;
+	}
+	
+	// Returns:
+	// created user_id
+	// 0 for failure
+	public static function create_new_user($stored_user_fields, $request_data)
+	{
+		$data_to_store = array();
+		$data_to_store['created_time'] = date(DATE_ATOM,time());
+		foreach ($stored_user_fields as $field) {
+			if (array_key_exists($field, $request_data)) {
+				$data_to_store[$field] = $request_data[$field];
+			}
+		}
+		$res = DBAPI::add_row_with_values(Table::USER, $data_to_store);
+		if ($res > 0) {
+			return $res;
+		} else {
+			return 0; 
 		}
 		
 	}
 	
-	private function verify_credentials_uniqueness() {
-		switch ($this->data_to_store['type']) {
-			case 0:
-				$unique_field_name = 'email';
-				break;
-			case 1:
-				$unique_field_name = 'fb_id';
-			default:
-				throw new SKHR_Exception(self::TAG, ExitCode::UNKNOWN_ACCOUNT_TYPE);;
-				break;
-		}
-		$quary_res = DBAPI::get_row_value(Table::USER,array($unique_field_name=>$this->data_to_store[$unique_field_name]), 'user_id');
-		if ($quary_res!= array()) {
-			throw new SKHR_Exception(self::TAG, ExitCode::CREDENTIALS_ALREADY_IN_USE);
-		}
-	}
-		
-	private function create_new_user() {
-		
-		// Insert the data
-		$this->data_to_store['created_time'] = date(DATE_ATOM,time());
-		$res = DBAPI::add_row_with_values(Table::USER, $this->data_to_store);
-		$this->data_to_store['user_id'] = $res;
-		if ($this->data_to_store['user_id']==0) {
-			$this->result['code'] = ExitCode::REGISTRATION_FAILED;
-		}
-		$this->result['code'] = ExitCode::REGISTRATION_SUCCEDED;
-	}
-	
-	private function send_verification_mail($user_id, $user_email) {
-		
+	// Return:
+	// created Verification id
+	// 0 for failure
+	public static function send_verification_mail($user_id, $user_email)
+	{
 		$verification_code = UTILS::genRandomString();
 		$verification_code_data = array (
 				'code' => $verification_code,
 				'user_id' => $user_id
 		);
 		$verify_code_id = DBAPI::add_row_with_values(Table::VERIFICATION_CODES, $verification_code_data);
-		UTILS::send_mail_via_gmail_account($verification_code, $user_email);
+		if ($verify_code_id > 0) {
+			try {
+				UTILS::send_mail_via_gmail_account($verification_code, $user_email);
+			} catch (SKHR_Exception $e) {
+				return 0;
+			}
+			return $verify_code_id;
+		}
+		return 0;
 	}
 	
-}
-
-class UserLogin {
-
-	const TAG = 'user.php, UserLogin:';
-	
-	public $result = array('code' => 0, 'data' => array());
-	private $data_to_store = array();
-	
-	const MANDATORY_FIELDS = 'type password email';
-	const MANDATORY_FIELDS_FACEBOOK = 'type fb_id token';
-	
-	function __construct(array $data) 
-	{	
-		$request_token = (isset($data['token'])) ? $data['token'] : null;
-		$this->data_to_store = TableDataManager::render_server_data($data, Table::USER_TABLE_INI_FILE);
-		$this->data_to_store['token'] = $request_token;
-		if (!isset($this->data_to_store['type'])) {
-			throw new SKHR_Exception(self::TAG.' type is mandatory for login action ', ExitCode::MANDATORY_FIELD_MISSING);
+	// Returns:
+	// 0 Not exist
+	// user_id
+	public static function identify_user_by_credentials(array $credentials) 
+	{
+		$quary_res = DBAPI::get_row_value(Table::USER, $credentials, 'user_id');
+		if ($quary_res != array()) {
+			return $quary_res[0];
 		}
-		$this->login();
+		return 0;
 	}
-
-	private function login() {
-		$fields_list = ($this->data_to_store['type']) ? self::MANDATORY_FIELDS_FACEBOOK : self::MANDATORY_FIELDS;
-		RequestData::verify_mandatory_fields($fields_list, $this->data_to_store);
-		
-		if (!$this->data_to_store['type']) {
-			$by_col_values = array(
-					'type' => $this->data_to_store['type'],
-					'password' => $this->data_to_store['password'],
-					'email' => $this->data_to_store['email']
-			);
-		} else {
-			$by_col_values = array(
-					'type' => $this->data_to_store['type'],
-					'fb_id' => $this->data_to_store['fb_id']
-			);
+	
+	// Returns:
+	// 0 Not exist
+	// code
+	public static function get_verification_code($user_id) {
+		$quary_res = DBAPI::get_row_value(Table::VERIFICATION_CODES, array('user_id' => $user_id), 'code');
+		if ($quary_res != array()) {
+			return $quary_res[0];
 		}
-		$qres = DBAPI::get_row_value(Table::USER, $by_col_values, 'user_id');
-		if ($qres == array()) {
-			throw new SKHR_Exception(self::TAG.' User is not registered.', ExitCode::LOGIN_FAILED);
-		} elseif (count($qres) > 1) {
-			throw new SKHR_Exception(self::TAG.' More than one user own these credentials.', ExitCode::LOGIN_FAILED);
-		}
-		$user_id = $qres[0];
-		
-		$this->result['data']['user_id'] = $user_id; 
-		if ($this->data_to_store['type']) {
-			$tk = UserToken::new_token_for_user_facebook($user_id, $this->data_to_store['token']);
-		} else {
-			$tk = UserToken::new_token_for_user($user_id, $this->data_to_store);
-		}
-		// 		echo 'token: '.$tk. "\n";
-		$this->result['data']['token'] = $tk;
+		return 0;
 	}
 }
+
 
 class UserToken {
 	const TAG = 'user.php, UserToken:';
-	
-	public static function new_token_for_user($user_id, $user_info = '') {
-		list($token, $expiry) = self::generate_new_token($user_id, $user_info);
-		self::insert_token($user_id, $token, $expiry);
-		return $token;
-	}
-	
-	public static function update_token_for_user($user_id, $user_info = '', $token = null, $expiry = null) {
+
+	public static function token_for_user($user_id, $user_info = '', $token = null, $expiry = null) {
 		if ($token == null) {
 			list($token, $expiry) = self::generate_new_token($user_id, $user_info);
+		} elseif ($expiry == null) {
+			list($dummy_token, $expiry) = self::generate_new_token($user_id, $user_info);
 		}
-		self::update_token($user_id, $token, expiry);
+		
+		$token_id = self::is_token_exist($user_id);
+		if ($token_id) {
+			self::update_token($token_id, $token, $expiry);
+		} else {
+			self::insert_token($user_id, $token, $expiry);
+		}
 		return $token;
 	}
-	
-	private function generate_new_token($user_id, $user_info = '') {
+
+	private static function generate_new_token($user_id, $user_info = '') {
 		$expiry = date(DATE_ATOM,time() + 30*24*60*60);
 		$characters = serialize(array('user_info'=> $user_info, 'expiry'=>$expiry, 'user_id'=>$user_id));
 		$res = array(
@@ -214,23 +420,32 @@ class UserToken {
 		return($res);
 	}
 	
-	private function insert_token($user_id, $token, $expiry) {
+	public static function is_token_exist($user_id) {
+		$db_token_id = DBAPI::get_row_value(Table::TOKEN, array('user_id' => $user_id), 'token_id');
+		if ($db_token_id[0] < 1) {
+			return 0;
+		}
+		return $db_token_id[0];
+	}
+	
+	public static function insert_token($user_id, $token, $expiry) {
 		$token_data_store = array('token' => $token, 'expiry' => $expiry,'user_id' => $user_id);
 		$db_token_id = DBAPI::add_row_with_values(Table::TOKEN, $token_data_store);
-		if (!$db_token_id) {
-			throw new SKHR_Exception(self::TAG.'Failed to insert new user token',ExitCode::TOKEN_INSERTION_FAILED);	
+		if ($db_token_id < 1) {
+			return 0;
 		}
+		return $db_token_id;
 	}
-	
-	private function update_token($user_id, $token, $expiry) {
+
+	private static function update_token($token_id, $token, $expiry) {
 		$token_data_store = array('token' => $token, 'expiry' => $expiry);
-		$db_token_id = DBAPI::update_row_with_values(Table::TOKEN, $token_data_store, $user_id);
-		if ($db_token_id) {
-			throw new SKHR_Exception(self::TAG.'Failed to update user\'s token',ExitCode::TOKEN_UPDATE_FAILED);	
+		$db_token_updated = DBAPI::update_row_with_values(Table::TOKEN, $token_data_store, array('token_id' => $token_id));
+		if ($db_token_updated < 1) {
+			throw new SKHR_Exception(self::TAG.'Failed to update user\'s token',ExitCode::TOKEN_UPDATE_FAILED);
 		}
 	}
-		
-	
+
+
 	public static function is_token_valid($token) {
 		$qres = DBAPI::get_row_value(Table::TOKEN, array('token' => $token), 'expiry');
 		$current = date(DATE_ATOM,time());

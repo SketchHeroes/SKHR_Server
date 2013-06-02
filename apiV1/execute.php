@@ -10,7 +10,11 @@ class Executor {
 	private $additional_info = '';
 	
 	private $type = 'skhr';
-	 
+	private $user_class = array('skhr' => 'SKHR', 'facebook'=>'FB', 'google'=>'GOOGLE');
+	private $requests_path = 'apiV1/request_data/';
+	private $responses_path = 'apiV1/response_data/';
+	private $user_ini_suffix = array('skhr' => '', 'facebook'=>'_facebook', 'google'=>'_google');
+	
 	public function __construct($rest_request) 
 	{
 		$rsrc = $rest_request->getResource();
@@ -24,7 +28,6 @@ class Executor {
 		
 		$ddata = json_decode($data, TRUE);
 		$this->type = $ddata['type'];
-		
 		try 
 		{
 			call_user_func('self::'.$method_name, $ddata);
@@ -57,42 +60,47 @@ class Executor {
 		));
 	}
 	
+	public function setResults($res, $ini)
+	{
+		if (gettype($res['data']) == gettype(array())) {
+			if ($res['data'] != array()) {
+				$this->body= json_encode(DataManager::process_data($res['data'], $this->responses_path.$ini));
+			}
+		}
+		$this->exit_code = $res['code'];
+		$this->content_type = 'application/json';
+		$this->additional_info = $res['additional_info'];
+	}
+	
 	private function post_user_register($data) 
 	{
-		$ini = ($this->type == 'skhr') ? 'post_user_register.ini' : 'post_user_register_facebook.ini';
-		DataManager::process_data($data, $ini);
-		
-		$ur = new UserRegister($data);
-		$this->exit_code = $ur->result['code'];
-		$this->body= json_encode($ur->result['data']);
-		$this->content_type = 'application/json';
+		$ini = 'post_user_register'.$this->user_ini_suffix[$this->type].'.ini';
+		$user_class = 'User'.$this->user_class[$this->type];
+		$user = new $user_class(DataManager::process_data($data, $this->requests_path.$ini));
+		$user->register();
+		$res = $user->get_result();
+		$this->setResults($res, $ini);
 	}
 	
 	private function post_user_verify($data)
 	{
-		$ini = 'post_user_verify.ini';
-		DataManager::process_data($data, $ini);
-		$ur = new UserVerifiy($data);
-		$ini = 'post_user_verify_response.ini';
-		DataManager::process_data($ur->result['data'], $ini);
-		
-		$this->exit_code = $ur->result['code'];
-		$this->body= json_encode($ur->result['data']);
-		$this->content_type = 'application/json';
+		$ini = 'post_user_verify'.$this->user_ini_suffix[$this->type].'.ini';
+		$user_class = 'User'.$this->user_class[$this->type];
+		$user = new $user_class(DataManager::process_data($data, $this->requests_path.$ini));
+		$user->verify();
+		$res = $user->get_result();
+		$this->setResults($res, $ini);
 	}
 	
 	
 	private function post_user_login($data) 
 	{
-		$ini = ($this->type == 'skhr') ? 'post_user_login.ini' : 'post_user_login_facebook.ini';
-		DataManager::process_data($data, $ini);
-		$ul = new UserLogin($data);
-		$ini = ($this->type == 'skhr') ? 'post_user_login_response.ini' : 'post_user_login_facebook_response.ini';
-		DataManager::process_data($ul->result['data'], $ini);
-		
-		$this->exit_code = $ul->result['code'];
-		$this->body= json_encode($ul->result['data']);
-		$this->content_type = 'application/json';
+		$ini = 'post_user_login'.$this->user_ini_suffix[$this->type].'.ini';
+		$user_class = 'User'.$this->user_class[$this->type];
+		$user = new $user_class(DataManager::process_data($data, $this->requests_path.$ini));
+		$user->login();
+		$res = $user->get_result();
+		$this->setResults($res, $ini);
 	}
 	
 	

@@ -4,8 +4,7 @@ class SendResponse
 {
 	public static function send($exit_code = 0, $data = '', $content_type = 'application/json', $additional_info = '')
 	{
-		$status_codes = parse_ini_file("exceptions2Status.ini");
-		$status = (isset($status_codes[$exit_code])) ? $status_codes[$exit_code] : 500;
+		$status = SKHR_Exception::getStatusCode($exit_code);
 		$status_header = 'HTTP/1.1 ' . $status . ' ' . self::getStatusCodeMessage($status);
 		header($status_header);
 		header('Content-type: ' . $content_type);

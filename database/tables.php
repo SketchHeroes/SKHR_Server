@@ -4,13 +4,13 @@ require_once 'dbapi.php';
 class Table 
 {
 	const USER = 'users';
-	const USER_TABLE_INI_FILE = 'user.ini';
+	const USER_TABLE_INI_FILE = 'database/tables/user.ini';
 	
 	const TOKEN = 'tokens';
-	const TOKEN_TABLE_INI_FILE = 'token.ini';
+	const TOKEN_TABLE_INI_FILE = 'database/tables/token.ini';
 	
 	const VERIFICATION_CODES = 'verification_codes';
-	const VERIFICATION_CODES_TABLE_INI_FILE = 'verification_codes.ini';
+	const VERIFICATION_CODES_TABLE_INI_FILE = 'database/tables/verification_codes.ini';
 	
 	const TUTORIAL = 'tutorials';
 	const COMMENT = 'comments';

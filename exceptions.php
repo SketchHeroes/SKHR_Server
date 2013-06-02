@@ -91,8 +91,40 @@ abstract class StatusCode
 
 abstract class ExitCode
 {
-	// User Registration:
+	const SUCCESS = 0;
+	const GENERAL_ERROR = 1;
+	
+	const USER_ALREADY_EXIST = 2;
+	const FAILED_TO_CREATE_NEW_USER = 3;
+	const FAILED_TO_SEND_VERIFICATION_MAIL = 4;
+	
+	const USER_NOT_EXIST = 2;
+	const WRONG_PASSWORD = 3;
+	const FAILED_TO_CREATE_TOKEN = 5;
+	const USER_IS_NOT_VERIFIED = 4;
+	
+	const WRONG_VERIFICATION_CODE = 2;
+	const VERIFICATION_CODE_NOT_EXIST = 3;
+	
+	
+	
+	
+	
+	
 	const REGISTRATION_SUCCEDED = 100;
+	const USER_CONTROLLER_INTERNAL_ERROR = 31;
+	const USER_DATABASE_INTERNAL_ERROR = 32;
+// 	MSQL
+	const CONNECT_MYSQL_DB = 50;
+	
+	const ADD_ROW_MYSQL_FAILED = 51;
+	const UPDATE_ROW_MYSQL_FAILED = 52;
+	const DELETE_ROW_MYSQL_FAILED = 53;
+	
+	const CREATE_NEW_USER_SUCCEEDED = 10;
+	const SEND_MAIL_FAILED = 15;
+	const VERIFICATION_REQUIRED = 16;
+	const REGISTRATION_COMPLETED = 17;
 	
 	const UNKNOWN_ACCOUNT_TYPE = 101; 
 	const CREDENTIALS_ALREADY_IN_USE = 102;
@@ -142,13 +174,15 @@ abstract class ExitCode
 
 class SKHR_Exception extends Exception {
 	
-	public function __construct ($message = null, $code = null, $previous = null) {
+	public function __construct($message = null, $code = null, $previous = null) {
 		$this->message = ExitCode::$message[$code].':'. "\n" .$message;
 		$this->code = $code;
 	}
 	
-	public static function getStatusCode ($exit_code) {
+	public static function getStatusCode($exit_code) {
 		$a = array(
+				0 => 200,
+				1 => 500,
 				100 => 201,
 				101 => 400,
 				102 => 400,
@@ -163,7 +197,7 @@ class SKHR_Exception extends Exception {
 				130 => 500,
 				131 => 500
 		);	
-		return $a[$exit_code];
+		return (isset($a[$exit_code])) ? $a[$exit_code] : 500;
 	}
 }
 
